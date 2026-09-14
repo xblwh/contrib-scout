@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "demo": true,
   "generated_at": "2026-09-14T10:00:00+00:00",
   "repository": {
@@ -51,28 +51,54 @@
         "examples"
       ],
       "assignees": [],
-      "status": "review",
-      "status_label": "需要核实",
+      "status": "investigate",
+      "status_label": "未发现占用线索",
       "reasons": [
-        "问题文本/标签包含 Python",
-        "维护者标注 good first issue"
+        "问题文本有匹配线索"
       ],
-      "risks": [
-        "发现贡献规则原文线索，需核实适用范围和前置条件。"
-      ],
+      "risks": [],
       "related_prs": [],
       "sources": [
         {
           "id": "issue-42",
           "label": "Issue #42",
           "url": "https://example.invalid/demo/document-kit/issues/42",
-          "excerpt": "【虚构演示】在 Python 示例中，结束事件到达时，缓冲区中剩余的内容未被输出。报告者提供了最小输入：两个文本片段，后跟一个结束事件。预期输出包含完整文本；实际缺少最后一段。需要在默认分支复现。"
+          "excerpt": "【虚构演示】\n### 预期行为\n结束事件到达时输出缓冲区剩余文本。\n### 实际行为\n最后一个文本片段未输出。\n`examples/stream_reader.py`\n```python\nchunks = [\"hello\", \" world\", None]\n# 预期得到 hello world；此段为虚构材料，未执行。\n```"
+        },
+        {
+          "id": "match-42-0",
+          "label": "问题标题",
+          "url": "https://example.invalid/demo/document-kit/issues/42",
+          "excerpt": "Python 流式读取示例遗漏最后一个文本片段",
+          "category": "match"
+        },
+        {
+          "id": "match-42-1",
+          "label": "问题标签",
+          "url": "https://example.invalid/demo/document-kit/issues/42",
+          "excerpt": "good first issue, Python, examples",
+          "category": "match"
+        },
+        {
+          "id": "match-42-2",
+          "label": "问题正文",
+          "url": "https://example.invalid/demo/document-kit/issues/42",
+          "excerpt": "区剩余文本。\n### 实际行为\n最后一个文本片段未输出。\n`examples/stream_reader.py`\n```python\nchunks = [\"hello\", \" world\", None]\n# 预期得到 hello world；此段为虚构材料，未执行。\n```",
+          "category": "match"
+        },
+        {
+          "id": "file-42-0",
+          "label": "examples/stream_reader.py（默认分支快照）",
+          "url": "https://example.invalid/demo/blob/dddddddddddddddddddddddddddddddddddddddd/examples/stream_reader.py#L1",
+          "excerpt": "# 虚构示例文件，未执行\ndef stream_reader(chunks):\n    ...",
+          "category": "file"
         }
       ],
       "next_steps": [
-        "阅读贡献规则和认领要求，确认允许当前类型的贡献。",
-        "在当前默认分支复现问题，并检查相关 PR 的实际 diff。",
-        "复现后再确定最小改动与回归测试；本报告未执行代码。"
+        "从已核实的文件入口阅读：问题原文提到的 examples/stream_reader.py 在默认分支快照中存在。先阅读相关实现及上下文，文件存在不表示它就是根因。",
+        "检查原文代码后建立最小复现：下方保留问题作者的代码或配置摘录（python）。先检查依赖、版本和副作用，再在隔离环境比较预期与实际行为；工具没有执行摘录。",
+        "开始实现前确认贡献规则：规则原文、适用范围和审批/认领要求在报告的贡献规则区。当前人工确认状态始终为待核实；协作状态不等于贡献许可。",
+        "完成复现后再确定最小修复与回归验证：让同一个输入在修改前暴露问题、修改后满足已确认的预期；具体测试命令应来自该项目文档，本报告未推测或运行命令。"
       ],
       "ai": null,
       "coverage": {
@@ -80,7 +106,129 @@
         "timeline_complete": true,
         "comments_scanned": 0,
         "comments_complete": true
-      }
+      },
+      "relevance": {
+        "kind": "direct",
+        "label": "问题文本有匹配线索",
+        "evidence": [
+          {
+            "kind": "title",
+            "label": "问题标题",
+            "terms": [
+              "Python"
+            ],
+            "excerpt": "Python 流式读取示例遗漏最后一个文本片段",
+            "url": "https://example.invalid/demo/document-kit/issues/42",
+            "source_id": "match-42-0"
+          },
+          {
+            "kind": "labels",
+            "label": "问题标签",
+            "terms": [
+              "Python"
+            ],
+            "excerpt": "good first issue, Python, examples",
+            "url": "https://example.invalid/demo/document-kit/issues/42",
+            "source_id": "match-42-1"
+          },
+          {
+            "kind": "body",
+            "label": "问题正文",
+            "terms": [
+              "Python"
+            ],
+            "excerpt": "区剩余文本。\n### 实际行为\n最后一个文本片段未输出。\n`examples/stream_reader.py`\n```python\nchunks = [\"hello\", \" world\", None]\n# 预期得到 hello world；此段为虚构材料，未执行。\n```",
+            "url": "https://example.invalid/demo/document-kit/issues/42",
+            "source_id": "match-42-2"
+          }
+        ],
+        "score": 8,
+        "note": "文本命中和仓库语言只说明相关线索，不证明所需技能、难度或工作量。"
+      },
+      "policy_check": {
+        "status": "unreviewed",
+        "documents_complete": true,
+        "contributing_found": true,
+        "finding_count": 3
+      },
+      "source_hints": {
+        "files": [
+          {
+            "path": "examples/stream_reader.py",
+            "url": "https://example.invalid/demo/blob/dddddddddddddddddddddddddddddddddddddddd/examples/stream_reader.py#L1",
+            "excerpt": "# 虚构示例文件，未执行\ndef stream_reader(chunks):\n    ...",
+            "line": 1,
+            "origin_url": "https://example.invalid/demo/document-kit/issues/42",
+            "note": "【虚构演示】展示存在路径的来源入口。",
+            "source_id": "file-42-0"
+          }
+        ],
+        "unverified": [],
+        "mentioned_count": 1,
+        "paths_omitted": 0,
+        "snapshot": "dddddddddddddddddddddddddddddddddddddddd",
+        "note": "【虚构演示】只展示文件核实流程；无真实仓库查询。"
+      },
+      "problem_evidence": [
+        {
+          "label": "预期行为",
+          "text": "结束事件到达时输出缓冲区剩余文本。",
+          "truncated": false
+        },
+        {
+          "label": "实际行为",
+          "text": "最后一个文本片段未输出。\n`examples/stream_reader.py`\n```python\nchunks = [\"hello\", \" world\", None]",
+          "truncated": false
+        },
+        {
+          "label": "预期得到 hello world；此段为虚构材料，未执行。",
+          "text": "```",
+          "truncated": false
+        }
+      ],
+      "reproduction": {
+        "language": "python",
+        "text": "chunks = [\"hello\", \" world\", None]\n# 预期得到 hello world；此段为虚构材料，未执行。",
+        "truncated": false,
+        "note": "问题作者提供的代码或配置摘录，未执行，不能保证可复现。"
+      },
+      "action_plan": [
+        {
+          "kind": "inspect_files",
+          "title": "从已核实的文件入口阅读",
+          "detail": "问题原文提到的 examples/stream_reader.py 在默认分支快照中存在。先阅读相关实现及上下文，文件存在不表示它就是根因。",
+          "source_ids": [
+            "file-42-0",
+            "issue-42"
+          ]
+        },
+        {
+          "kind": "reproduce",
+          "title": "检查原文代码后建立最小复现",
+          "detail": "下方保留问题作者的代码或配置摘录（python）。先检查依赖、版本和副作用，再在隔离环境比较预期与实际行为；工具没有执行摘录。",
+          "source_ids": [
+            "issue-42"
+          ]
+        },
+        {
+          "kind": "policy",
+          "title": "开始实现前确认贡献规则",
+          "detail": "规则原文、适用范围和审批/认领要求在报告的贡献规则区。当前人工确认状态始终为待核实；协作状态不等于贡献许可。",
+          "source_ids": [
+            "policy-doc-2-3",
+            "policy-doc-2-4",
+            "policy-doc-2-5"
+          ]
+        },
+        {
+          "kind": "verify_change",
+          "title": "完成复现后再确定最小修复与回归验证",
+          "detail": "让同一个输入在修改前暴露问题、修改后满足已确认的预期；具体测试命令应来自该项目文档，本报告未推测或运行命令。",
+          "source_ids": [
+            "issue-42"
+          ]
+        }
+      ]
     },
     {
       "number": 57,
@@ -99,11 +247,10 @@
       "status": "hold",
       "status_label": "暂缓",
       "reasons": [
-        "问题文本/标签包含 TypeScript"
+        "问题文本有匹配线索"
       ],
       "risks": [
-        "已有 assignee：demo-contributor",
-        "发现贡献规则原文线索，需核实适用范围和前置条件。"
+        "已有 assignee：demo-contributor"
       ],
       "related_prs": [],
       "sources": [
@@ -112,12 +259,35 @@
           "label": "Issue #57",
           "url": "https://example.invalid/demo/document-kit/issues/57",
           "excerpt": "【虚构演示】TypeScript 客户端重试请求时，示例中的请求头被重复附加。已有贡献者被指派，需避免重复实现。"
+        },
+        {
+          "id": "match-57-0",
+          "label": "问题标题",
+          "url": "https://example.invalid/demo/document-kit/issues/57",
+          "excerpt": "TypeScript 客户端重试后重复发送请求头",
+          "category": "match"
+        },
+        {
+          "id": "match-57-1",
+          "label": "问题标签",
+          "url": "https://example.invalid/demo/document-kit/issues/57",
+          "excerpt": "bug, TypeScript",
+          "category": "match"
+        },
+        {
+          "id": "match-57-2",
+          "label": "问题正文",
+          "url": "https://example.invalid/demo/document-kit/issues/57",
+          "excerpt": "【虚构演示】TypeScript 客户端重试请求时，示例中的请求头被重复附加。已有贡献者被指派，需避免重复实现。",
+          "category": "match"
         }
       ],
       "next_steps": [
-        "阅读贡献规则和认领要求，确认允许当前类型的贡献。",
-        "在当前默认分支复现问题，并检查相关 PR 的实际 diff。",
-        "复现后再确定最小改动与回归测试；本报告未执行代码。"
+        "先确认已有负责人的工作范围：当前 assignee：demo-contributor。先在原问题检查最新进展，避免开始重复实现。",
+        "先定位「TypeScript 客户端重试后重复发送请求头」涉及的模块：问题原文未提供可核实的文件路径。根据它描述的 API 或功能查找实现与测试；当前不能给出可靠的修改文件。",
+        "先补齐复现或验收信息：当前未识别出复现代码或明确的行为段落。先阅读完整 issue，整理所需版本、输入和预期结果，再判断能否开始修改。",
+        "开始实现前确认贡献规则：规则原文、适用范围和审批/认领要求在报告的贡献规则区。当前人工确认状态始终为待核实；协作状态不等于贡献许可。",
+        "完成复现后再确定最小修复与回归验证：让同一个输入在修改前暴露问题、修改后满足已确认的预期；具体测试命令应来自该项目文档，本报告未推测或运行命令。"
       ],
       "ai": null,
       "coverage": {
@@ -125,7 +295,105 @@
         "timeline_complete": true,
         "comments_scanned": 0,
         "comments_complete": true
-      }
+      },
+      "relevance": {
+        "kind": "direct",
+        "label": "问题文本有匹配线索",
+        "evidence": [
+          {
+            "kind": "title",
+            "label": "问题标题",
+            "terms": [
+              "TypeScript"
+            ],
+            "excerpt": "TypeScript 客户端重试后重复发送请求头",
+            "url": "https://example.invalid/demo/document-kit/issues/57",
+            "source_id": "match-57-0"
+          },
+          {
+            "kind": "labels",
+            "label": "问题标签",
+            "terms": [
+              "TypeScript"
+            ],
+            "excerpt": "bug, TypeScript",
+            "url": "https://example.invalid/demo/document-kit/issues/57",
+            "source_id": "match-57-1"
+          },
+          {
+            "kind": "body",
+            "label": "问题正文",
+            "terms": [
+              "TypeScript"
+            ],
+            "excerpt": "【虚构演示】TypeScript 客户端重试请求时，示例中的请求头被重复附加。已有贡献者被指派，需避免重复实现。",
+            "url": "https://example.invalid/demo/document-kit/issues/57",
+            "source_id": "match-57-2"
+          }
+        ],
+        "score": 8,
+        "note": "文本命中和仓库语言只说明相关线索，不证明所需技能、难度或工作量。"
+      },
+      "policy_check": {
+        "status": "unreviewed",
+        "documents_complete": true,
+        "contributing_found": true,
+        "finding_count": 3
+      },
+      "source_hints": {
+        "files": [],
+        "unverified": [],
+        "mentioned_count": 0,
+        "paths_omitted": 0,
+        "snapshot": null,
+        "note": "【虚构演示】只展示文件核实流程；无真实仓库查询。"
+      },
+      "problem_evidence": [],
+      "reproduction": null,
+      "action_plan": [
+        {
+          "kind": "coordinate",
+          "title": "先确认已有负责人的工作范围",
+          "detail": "当前 assignee：demo-contributor。先在原问题检查最新进展，避免开始重复实现。",
+          "source_ids": [
+            "issue-57"
+          ]
+        },
+        {
+          "kind": "locate_scope",
+          "title": "先定位「TypeScript 客户端重试后重复发送请求头」涉及的模块",
+          "detail": "问题原文未提供可核实的文件路径。根据它描述的 API 或功能查找实现与测试；当前不能给出可靠的修改文件。",
+          "source_ids": [
+            "issue-57"
+          ]
+        },
+        {
+          "kind": "clarify_reproduction",
+          "title": "先补齐复现或验收信息",
+          "detail": "当前未识别出复现代码或明确的行为段落。先阅读完整 issue，整理所需版本、输入和预期结果，再判断能否开始修改。",
+          "source_ids": [
+            "issue-57"
+          ]
+        },
+        {
+          "kind": "policy",
+          "title": "开始实现前确认贡献规则",
+          "detail": "规则原文、适用范围和审批/认领要求在报告的贡献规则区。当前人工确认状态始终为待核实；协作状态不等于贡献许可。",
+          "source_ids": [
+            "policy-doc-2-3",
+            "policy-doc-2-4",
+            "policy-doc-2-5"
+          ]
+        },
+        {
+          "kind": "verify_change",
+          "title": "完成复现后再确定最小修复与回归验证",
+          "detail": "让同一个输入在修改前暴露问题、修改后满足已确认的预期；具体测试命令应来自该项目文档，本报告未推测或运行命令。",
+          "source_ids": [
+            "issue-57"
+          ]
+        }
+      ]
     },
     {
       "number": 61,
@@ -140,13 +408,12 @@
       ],
       "assignees": [],
       "status": "review",
-      "status_label": "需要核实",
+      "status_label": "协作状态待核实",
       "reasons": [
-        "问题文本/标签包含 Python"
+        "问题文本有匹配线索"
       ],
       "risks": [
-        "评论中出现认领意向；可能已过期，需要人工核实。",
-        "发现贡献规则原文线索，需核实适用范围和前置条件。"
+        "评论中出现认领意向；可能已过期，需要人工核实。"
       ],
       "related_prs": [],
       "sources": [
@@ -161,12 +428,28 @@
           "label": "认领线索（需核实是否仍有效）",
           "url": "https://example.invalid/demo/document-kit/issues/61#issuecomment-123",
           "excerpt": "【虚构演示】I'd like to work on this issue. I will investigate the async example."
+        },
+        {
+          "id": "match-61-0",
+          "label": "问题标签",
+          "url": "https://example.invalid/demo/document-kit/issues/61",
+          "excerpt": "documentation, Python",
+          "category": "match"
+        },
+        {
+          "id": "match-61-1",
+          "label": "问题正文",
+          "url": "https://example.invalid/demo/document-kit/issues/61",
+          "excerpt": "【虚构演示】Python 异步调用示例没有说明连接中断后的处理方式。评论中有其他贡献者表达意向，尚不清楚是否开始实现。",
+          "category": "match"
         }
       ],
       "next_steps": [
-        "阅读贡献规则和认领要求，确认允许当前类型的贡献。",
-        "在当前默认分支复现问题，并检查相关 PR 的实际 diff。",
-        "复现后再确定最小改动与回归测试；本报告未执行代码。"
+        "核实认领意向是否仍有效：阅读这些评论及后续回复，确认是否已撤回、完成或转交；关键词命中不代表有效指派。",
+        "先定位「文档中的异步调用示例缺少错误处理」涉及的模块：问题原文未提供可核实的文件路径。根据它描述的 API 或功能查找实现与测试；当前不能给出可靠的修改文件。",
+        "先补齐复现或验收信息：当前未识别出复现代码或明确的行为段落。先阅读完整 issue，整理所需版本、输入和预期结果，再判断能否开始修改。",
+        "开始实现前确认贡献规则：规则原文、适用范围和审批/认领要求在报告的贡献规则区。当前人工确认状态始终为待核实；协作状态不等于贡献许可。",
+        "完成复现后再确定最小修复与回归验证：让同一个输入在修改前暴露问题、修改后满足已确认的预期；具体测试命令应来自该项目文档，本报告未推测或运行命令。"
       ],
       "ai": null,
       "coverage": {
@@ -174,7 +457,95 @@
         "timeline_complete": true,
         "comments_scanned": 1,
         "comments_complete": true
-      }
+      },
+      "relevance": {
+        "kind": "direct",
+        "label": "问题文本有匹配线索",
+        "evidence": [
+          {
+            "kind": "labels",
+            "label": "问题标签",
+            "terms": [
+              "Python"
+            ],
+            "excerpt": "documentation, Python",
+            "url": "https://example.invalid/demo/document-kit/issues/61",
+            "source_id": "match-61-0"
+          },
+          {
+            "kind": "body",
+            "label": "问题正文",
+            "terms": [
+              "Python"
+            ],
+            "excerpt": "【虚构演示】Python 异步调用示例没有说明连接中断后的处理方式。评论中有其他贡献者表达意向，尚不清楚是否开始实现。",
+            "url": "https://example.invalid/demo/document-kit/issues/61",
+            "source_id": "match-61-1"
+          }
+        ],
+        "score": 7,
+        "note": "文本命中和仓库语言只说明相关线索，不证明所需技能、难度或工作量。"
+      },
+      "policy_check": {
+        "status": "unreviewed",
+        "documents_complete": true,
+        "contributing_found": true,
+        "finding_count": 3
+      },
+      "source_hints": {
+        "files": [],
+        "unverified": [],
+        "mentioned_count": 0,
+        "paths_omitted": 0,
+        "snapshot": null,
+        "note": "【虚构演示】只展示文件核实流程；无真实仓库查询。"
+      },
+      "problem_evidence": [],
+      "reproduction": null,
+      "action_plan": [
+        {
+          "kind": "check_claim",
+          "title": "核实认领意向是否仍有效",
+          "detail": "阅读这些评论及后续回复，确认是否已撤回、完成或转交；关键词命中不代表有效指派。",
+          "source_ids": [
+            "claim-123"
+          ]
+        },
+        {
+          "kind": "locate_scope",
+          "title": "先定位「文档中的异步调用示例缺少错误处理」涉及的模块",
+          "detail": "问题原文未提供可核实的文件路径。根据它描述的 API 或功能查找实现与测试；当前不能给出可靠的修改文件。",
+          "source_ids": [
+            "issue-61"
+          ]
+        },
+        {
+          "kind": "clarify_reproduction",
+          "title": "先补齐复现或验收信息",
+          "detail": "当前未识别出复现代码或明确的行为段落。先阅读完整 issue，整理所需版本、输入和预期结果，再判断能否开始修改。",
+          "source_ids": [
+            "issue-61"
+          ]
+        },
+        {
+          "kind": "policy",
+          "title": "开始实现前确认贡献规则",
+          "detail": "规则原文、适用范围和审批/认领要求在报告的贡献规则区。当前人工确认状态始终为待核实；协作状态不等于贡献许可。",
+          "source_ids": [
+            "policy-doc-2-3",
+            "policy-doc-2-4",
+            "policy-doc-2-5"
+          ]
+        },
+        {
+          "kind": "verify_change",
+          "title": "完成复现后再确定最小修复与回归验证",
+          "detail": "让同一个输入在修改前暴露问题、修改后满足已确认的预期；具体测试命令应来自该项目文档，本报告未推测或运行命令。",
+          "source_ids": [
+            "issue-61"
+          ]
+        }
+      ]
     }
   ],
   "warnings": [
@@ -188,9 +559,12 @@
     "issue_window_complete": true,
     "source_code_checked": false,
     "policy_reviewed": false,
-    "note": "演示数据全部虚构。真实调研只提供线索，仍需核对源码、复现问题、阅读贡献政策并检查历史 PR。",
+    "note": "【虚构演示】仅展示已采集记录的线索；路径存在不代表根因，未运行代码或确认贡献许可。",
     "closed_prs_scanned": 12,
-    "closed_prs_complete": true
+    "closed_prs_complete": true,
+    "source_lookup_enabled": true,
+    "source_paths_checked": 1,
+    "source_snapshot": "dddddddddddddddddddddddddddddddddddddddd"
   },
   "metrics": {
     "github_requests": 0,
@@ -252,5 +626,11 @@
     ],
     "findings_truncated": false,
     "note": "演示规则全部虚构。真实报告中的原文线索需要结合上下文逐条核实，不构成贡献许可。"
+  },
+  "selection": {
+    "include_unmatched": false,
+    "unmatched_excluded": 4,
+    "matched_available": 20,
+    "requested": 3
   }
 }

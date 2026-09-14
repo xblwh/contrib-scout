@@ -16,6 +16,18 @@ from .research import research, validate_inputs
 WEB = Path(__file__).with_name("web")
 
 
+def research_request(data):
+    """Retain only public form inputs so refresh can restore an in-flight job."""
+    return {
+        "repo": data["repo"],
+        "stack": data.get("stack", "Python, TypeScript"),
+        "limit": data.get("limit", 3),
+        "ai": data.get("ai", False),
+        "include_unmatched": data.get("include_unmatched", False),
+        "check_sources": data.get("check_sources", True),
+    }
+
+
 class ScoutServer(ThreadingHTTPServer):
     def __init__(self, address, use_gh=False):
         self.use_gh = use_gh
@@ -38,6 +50,8 @@ class ScoutServer(ThreadingHTTPServer):
                 data.get("limit", 3),
                 GitHub(self.use_gh),
                 progress=progress,
+                include_unmatched=data.get("include_unmatched", False),
+                check_sources=data.get("check_sources", True),
             )
             if data.get("ai"):
                 progress("生成 AI 建议并校验引用")
@@ -58,6 +72,7 @@ class ScoutServer(ThreadingHTTPServer):
                 "error": "调研发生内部错误，请检查仓库数据或稍后重试。",
             }
         with self.jobs_lock:
+            result["request"] = research_request(data)
             self.jobs[job_id] = result
 
     def server_close(self):
@@ -200,7 +215,14 @@ class Handler(BaseHTTPRequestHandler):
                 data.get("stack", "Python, TypeScript"),
                 data.get("limit", 3),
             )
-            if not isinstance(data.get("ai", False), bool):
+            if any(
+                not isinstance(data.get(key, default), bool)
+                for key, default in (
+                    ("ai", False),
+                    ("include_unmatched", False),
+                    ("check_sources", True),
+                )
+            ):
                 raise ValueError()
             if data.get("ai") and not configured():
                 raise ResearchError("请先在服务端配置模型，再启用 AI 分析。")
@@ -223,7 +245,10 @@ class Handler(BaseHTTPRequestHandler):
                 if oldest:
                     del self.server.jobs[oldest]
             job_id = secrets.token_urlsafe(16)
-            self.server.jobs[job_id] = {"state": "running"}
+            self.server.jobs[job_id] = {
+                "state": "running",
+                "request": research_request(data),
+            }
         self.server.executor.submit(self.server.run_job, job_id, data)
         self.send({"job_id": job_id}, 202)
 

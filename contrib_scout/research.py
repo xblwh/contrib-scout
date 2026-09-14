@@ -6,10 +6,15 @@ import time
 
 from .github import GitHub, ResearchError, parse_target
 from .policy import collect_documents
+from .matching import relevance, shortlist_score, stack_matches
+from .references import explicit_reference as explicit_reference
+from .references import hidden_cross_references, prose_lines, related_pulls
+from .source_hints import SourceInspector, mentioned_paths
+from .action_plan import enrich_actions
 
 STATUS_LABELS = {
-    "investigate": "可继续调研",
-    "review": "需要核实",
+    "investigate": "未发现占用线索",
+    "review": "协作状态待核实",
     "hold": "暂缓",
     "skip": "不适合当前贡献",
 }
@@ -20,38 +25,6 @@ CLAIM = re.compile(
 NEGATED_CLAIM = re.compile(
     r"(?:not|no longer|stopped) working|unassign|不再|放弃认领", re.I
 )
-STOPWORDS = {
-    "this",
-    "that",
-    "with",
-    "from",
-    "when",
-    "have",
-    "does",
-    "should",
-    "support",
-    "error",
-    "issue",
-    "fix",
-    "test",
-    "add",
-}
-
-
-def tokens(text):
-    return {
-        x
-        for x in re.findall(r"[a-z][a-z0-9_+-]{2,}", text.lower())
-        if x not in STOPWORDS
-    }
-
-
-def stack_matches(text, stack):
-    return [
-        term
-        for term in stack
-        if re.search(rf"(?<!\w){re.escape(term)}(?!\w)", text, re.I)
-    ]
 
 
 def validate_inputs(repo, stack="Python, TypeScript", limit=3):
@@ -64,28 +37,6 @@ def validate_inputs(repo, stack="Python, TypeScript", limit=3):
         dict.fromkeys(x.strip() for x in re.split(r"[,，/;；]", stack) if x.strip())
     )[:10]
     return target, terms
-
-
-def explicit_reference(pull, repo, number):
-    body = (pull.get("title") or "") + "\n" + (pull.get("body") or "")
-    return bool(
-        re.search(rf"(?<![\w/])#{number}\b", body)
-        or re.search(rf"(?<![\w/]){re.escape(repo)}#{number}\b", body, re.I)
-        or re.search(
-            rf"https://github\.com/{re.escape(repo)}/issues/{number}(?!\d)", body, re.I
-        )
-    )
-
-
-def shortlist_score(issue, stack):
-    labels = [x["name"].lower() for x in issue.get("labels", [])]
-    text = " ".join([issue.get("title", ""), issue.get("body") or "", *labels]).lower()
-    matches = stack_matches(text, stack)
-    score = len(matches) * 2
-    score += 4 if "good first issue" in labels else 0
-    score += 2 if "help wanted" in labels else 0
-    score -= 5 if issue.get("assignees") else 0
-    return score
 
 
 def assess(
@@ -138,69 +89,96 @@ def assess(
         risks.append("评论中出现认领意向；可能已过期，需要人工核实。")
         if status != "hold":
             status = "review"
-    for event in timeline:
-        source = event.get("source", {}).get("issue", {})
-        if event.get("event") != "cross-referenced" or not source.get("pull_request"):
-            continue
-        url = source.get("html_url", "")
-        if not re.fullmatch(r"https://github\.com/[^/]+/[^/]+/pull/\d+", url):
-            continue
-        merged = bool(source["pull_request"].get("merged_at"))
-        related[url] = {
-            "number": source["number"],
-            "title": source.get("title", ""),
-            "url": url,
-            "state": "merged" if merged else source.get("state", "unknown"),
-            "kind": "timeline",
-            "same_repository": url.lower().startswith(
-                f"https://github.com/{repo.lower()}/pull/"
-            ),
-            "reason": "Issue 时间线关联；是否解决同一问题仍需检查 diff",
+    body = issue.get("body") or ""
+    prose = list(prose_lines(body, with_offsets=True))
+    implementation = next(
+        (
+            offset
+            for offset, line in prose
+            if re.match(
+                r"^#{1,6}\s*(?:实现内容|实现细节|改动概要|主要改动|文件变更|改动文件|implementation details|changes proposed|files changed)",
+                line,
+                re.I,
+            )
+        ),
+        None,
+    )
+    verification = next(
+        (
+            offset
+            for offset, line in prose
+            if re.match(
+                r"^#{1,6}\s*(?:验证结果|测试结果|验证清单|verification results|test results)",
+                line,
+                re.I,
+            )
+        ),
+        None,
+    )
+
+    def has_record(offset):
+        if offset is None:
+            return False
+        section = body[offset:].split("\n", 1)
+        if len(section) < 2:
+            return False
+        content = re.split(r"(?m)^#{1,6}\s+", section[1], maxsplit=1)[0]
+        return content.strip().strip("_").casefold() not in {
+            "",
+            "no response",
+            "n/a",
+            "none",
+            "待补充",
+            "暂无",
         }
-    issue_tokens = tokens(issue["title"])
-    for pull in pulls:
-        url = pull["html_url"]
-        explicit = explicit_reference(pull, repo, number)
-        other = tokens(pull["title"])
-        overlap = len(issue_tokens & other)
-        similar = overlap >= 2 and overlap / max(1, len(issue_tokens | other)) >= 0.35
-        state = "merged" if pull.get("merged_at") else pull.get("state", "unknown")
-        if url in related:
-            # The PR endpoint is more explicit about merge state than an issue timeline source.
-            related[url]["state"] = state
-        elif explicit or similar:
-            related[url] = {
-                "number": pull["number"],
-                "title": pull["title"],
-                "url": url,
-                "state": state,
-                "kind": "reference" if explicit else "similarity",
-                "same_repository": True,
-                "reason": "PR 标题/正文引用该 issue"
-                if explicit
-                else "标题词语相似，仅为疑似重复",
-            }
-    for index, pull in enumerate(related.values()):
+
+    if has_record(implementation) and has_record(verification):
         sources.append(
             {
-                "id": f"related-{number}-{index}",
-                "label": f"相关 PR #{pull['number']}",
-                "url": pull["url"],
-                "excerpt": f"{pull['title']} — {pull['state']}；{pull['reason']}",
+                "id": f"work-{number}",
+                "label": "问题正文中的实现与验证记录（作者陈述）",
+                "url": issue["html_url"],
+                "excerpt": body[implementation : implementation + 500]
+                + "\n…\n"
+                + body[verification : verification + 500],
+                "category": "work_record",
             }
         )
-        if (
-            pull["state"] == "open"
-            and pull["kind"] != "similarity"
-            and pull["same_repository"]
-        ):
+        risks.append(
+            "问题正文含实现与验证记录，需要确认是否已有改动、分支或待提交方案；这些记录未经本工具验证。"
+        )
+        if status != "hold":
+            status = "review"
+    related = related_pulls(issue, pulls, timeline, repo)
+    for index, pull in enumerate(related):
+        pull["source_id"] = f"related-{number}-{index}"
+        name = f"{pull['repository']}#{pull['number']}"
+        sources.append(
+            {
+                "id": pull["source_id"],
+                "label": name + " · " + pull["relation_label"],
+                "url": pull["url"],
+                "excerpt": f"{pull['title']} — {pull['state']}；{pull['reason']}"
+                + (
+                    f" 原文：{pull['intent_quote'] or pull['scope_quote']}"
+                    if pull["intent_quote"] or pull["scope_quote"]
+                    else ""
+                ),
+                "category": "mention"
+                if pull["relation"] == "mention"
+                else "related_pr",
+            }
+        )
+        if pull["relation"] == "mention":
+            continue
+        if pull["state"] == "open" and pull["relation"] == "solution_intent":
             risks.append(
-                f"存在开放的关联 PR #{pull['number']}；先确认是否与拟改动重叠。"
+                f"{name} 为开放 PR，作者提出解决该 issue 的意图；先核实拟改动是否重叠。"
             )
             status = "hold"
-        elif pull["state"] in {"open", "merged"}:
+        elif pull["state"] in {"open", "merged", "unknown"}:
             risks.append(
-                f"{'已合并的' if pull['state'] == 'merged' else '疑似或跨仓库的'}相关 PR #{pull['number']} 需要人工比较。"
+                f"{name}（{pull['state']}）：{pull['relation_label']}，需要比较实际改动。"
             )
             if status != "hold":
                 status = "review"
@@ -254,7 +232,7 @@ def assess(
         "status_label": STATUS_LABELS[status],
         "reasons": reasons,
         "risks": risks,
-        "related_prs": list(related.values()),
+        "related_prs": related,
         "sources": sources,
         "next_steps": [
             "阅读贡献规则和认领要求，确认允许当前类型的贡献。",
@@ -265,9 +243,20 @@ def assess(
     }
 
 
-def research(repo, stack="Python, TypeScript", limit=3, client=None, progress=None):
+def research(
+    repo,
+    stack="Python, TypeScript",
+    limit=3,
+    client=None,
+    progress=None,
+    *,
+    include_unmatched=False,
+    check_sources=True,
+):
     started = time.monotonic()
     target, terms = validate_inputs(repo, stack, limit)
+    if not isinstance(include_unmatched, bool) or not isinstance(check_sources, bool):
+        raise ResearchError("筛选与文件核实选项必须为布尔值。")
     client = client or GitHub()
     progress = progress or (lambda message: None)
     progress("读取仓库与目标问题")
@@ -277,6 +266,12 @@ def research(repo, stack="Python, TypeScript", limit=3, client=None, progress=No
     repo = metadata["full_name"]
     prefix = f"repos/{repo}"
     selected = None
+    selection = {
+        "include_unmatched": include_unmatched,
+        "unmatched_excluded": 0,
+        "matched_available": 0,
+        "requested": limit,
+    }
     if target.issue_number is not None:
         issue = client.get(f"{prefix}/issues/{target.issue_number}")
         if "pull_request" in issue:
@@ -310,8 +305,28 @@ def research(repo, stack="Python, TypeScript", limit=3, client=None, progress=No
             prefix + "/issues?state=open&sort=updated&direction=desc", max_pages=1
         )
         issues = [item for item in entries if "pull_request" not in item]
+        matches = {
+            item["number"]: relevance(
+                item, terms, metadata.get("language"), metadata.get("default_branch")
+            )
+            for item in issues
+        }
+        eligible = [
+            item
+            for item in issues
+            if include_unmatched
+            or matches[item["number"]]["kind"] not in {"unknown", "different_target"}
+        ]
+        selection["unmatched_excluded"] = len(issues) - len(eligible)
+        selection["matched_available"] = sum(
+            match["kind"] in {"direct", "repository"} for match in matches.values()
+        )
         selected = sorted(
-            issues, key=lambda item: shortlist_score(item, terms), reverse=True
+            eligible,
+            key=lambda item: shortlist_score(
+                item, terms, metadata.get("language"), metadata.get("default_branch")
+            ),
+            reverse=True,
         )[:limit]
         if issues_capped:
             warnings.append(
@@ -319,7 +334,18 @@ def research(repo, stack="Python, TypeScript", limit=3, client=None, progress=No
             )
     else:
         issues, issues_capped = selected, False
+        selection["requested"] = 1
+        selection["matched_available"] = int(
+            relevance(
+                selected[0],
+                terms,
+                metadata.get("language"),
+                metadata.get("default_branch"),
+            )["kind"]
+            in {"direct", "repository"}
+        )
 
+    inspector = SourceInspector(client, repo, metadata.get("default_branch"))
     candidates = []
     for index, issue in enumerate(selected, 1):
         progress(
@@ -338,6 +364,13 @@ def research(repo, stack="Python, TypeScript", limit=3, client=None, progress=No
             records.append(batch)
             detail_coverage[f"{endpoint}_scanned"] = len(batch)
             detail_coverage[f"{endpoint}_complete"] = not capped
+        omitted = hidden_cross_references(records[0], repo)
+        detail_coverage["cross_references_omitted"] = omitted
+        if omitted:
+            incomplete = True
+            warnings.append(
+                f"Issue #{issue['number']} 有 {omitted} 条跨仓库引用未确认公开可见，已省略其内容；关联检查存在缺口。"
+            )
         candidate = assess(
             issue,
             open_pulls + closed_pulls,
@@ -349,29 +382,54 @@ def research(repo, stack="Python, TypeScript", limit=3, client=None, progress=No
             archived=metadata.get("archived", False),
         )
         candidate["coverage"] = detail_coverage
-        if not policy["documents_complete"] or not policy["contributing_found"]:
-            candidate["risks"].append("贡献文档缺失或读取不完整，需先核实规则。")
-            if candidate["status"] == "investigate":
-                candidate["status"] = "review"
-        if policy["findings"]:
-            candidate["risks"].append(
-                "发现贡献规则原文线索，需核实适用范围和前置条件。"
-            )
-            if candidate["status"] == "investigate":
-                candidate["status"] = "review"
-        if any(doc.get("inherited") for doc in documents):
-            candidate["risks"].append(
-                "使用共享贡献规则作为回退来源，适用范围仍待确认。"
-            )
-            if candidate["status"] == "investigate":
-                candidate["status"] = "review"
+        candidate["relevance"] = relevance(
+            issue, terms, metadata.get("language"), metadata.get("default_branch")
+        )
+        candidate["reasons"] = [candidate["relevance"]["label"]] + [
+            row["label"] + "：" + ", ".join(row["terms"])
+            for row in candidate["relevance"]["evidence"]
+        ]
+        candidate["policy_check"] = {
+            "status": "unreviewed",
+            "documents_complete": policy["documents_complete"],
+            "contributing_found": policy["contributing_found"],
+            "finding_count": len(policy["findings"]),
+        }
         candidate["status_label"] = STATUS_LABELS[candidate["status"]]
         candidates.append(candidate)
     order = {"investigate": 0, "review": 1, "hold": 2, "skip": 3}
     candidates.sort(key=lambda item: order[item["status"]])
+    issues_by_number = {item["number"]: item for item in selected}
+    if check_sources:
+        # Give each selected issue one lookup before spending a second on any issue.
+        for candidate in candidates:
+            progress(f"核实 issue #{candidate['number']} 的首个文件入口")
+            inspector.inspect(issues_by_number[candidate["number"]], max_paths=1)
+    progress("核实其余文件入口并整理行动建议" if check_sources else "整理行动建议")
+    for candidate in candidates:
+        item = issues_by_number[candidate["number"]]
+        if check_sources:
+            candidate["source_hints"] = inspector.inspect(item)
+        else:
+            paths = mentioned_paths(
+                item.get("body") or "", repo, metadata.get("default_branch")
+            )
+            candidate["source_hints"] = {
+                "files": [],
+                "unverified": [
+                    {**path, "reason": "本次未启用文件路径核实。"}
+                    for path in paths[:12]
+                ],
+                "mentioned_count": len(paths),
+                "paths_omitted": max(0, len(paths) - 12),
+                "snapshot": None,
+                "note": "本次未启用文件路径核实。",
+            }
+        enrich_actions(candidate, item, policy, documents)
     progress("整理来源与调研报告")
     return {
-        "version": 2,
+        "version": 3,
+        "selection": selection,
         "demo": False,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "target": {
@@ -403,8 +461,13 @@ def research(repo, stack="Python, TypeScript", limit=3, client=None, progress=No
             "closed_prs_complete": not closed_capped,
             "issue_window_complete": not issues_capped,
             "source_code_checked": False,
+            "source_paths_checked": sum(
+                len(c["source_hints"]["files"]) for c in candidates
+            ),
+            "source_snapshot": inspector.ref,
+            "source_lookup_enabled": check_sources,
             "policy_reviewed": False,
-            "note": "仅在已读取记录中查找线索；未核对源码、运行复现或人工确认贡献政策。近期关闭 PR 有数量上限，时间线也可能缺失关联；未发现线索不代表问题仍未解决。",
+            "note": "仅在已读取记录中查找线索；文件核实仅确认原文路径与摘录，未判断源码根因、运行复现或人工确认贡献政策。近期关闭 PR 有数量上限，时间线也可能缺失关联；未发现线索不代表问题仍未解决。",
         },
         "metrics": {
             "github_requests": client.requests,

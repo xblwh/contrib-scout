@@ -19,6 +19,79 @@ def configured():
     )
 
 
+def model_input(report):
+    """Keep new UI material from duplicating itself in the model context."""
+    documents = [
+        {
+            "id": doc["id"],
+            "path": doc["path"],
+            "url": doc["url"],
+            "text": doc["text"][:3000],
+            "model_excerpt_truncated": len(doc["text"]) > 3000,
+        }
+        for doc in report["documents"]
+    ]
+    policy = report.get("policy", {})
+    findings = [
+        {
+            **finding,
+            "quote": finding["quote"][:600],
+            "model_excerpt_truncated": len(finding["quote"]) > 600,
+        }
+        for finding in policy.get("findings", [])[:20]
+    ]
+    candidates = []
+    priority = {"related_pr": 1, "work_record": 1, "file": 3, "match": 4, "mention": 5}
+    for candidate in report["candidates"]:
+        sources = sorted(
+            candidate["sources"],
+            key=lambda source: 0
+            if source["id"].startswith("issue-")
+            else 2
+            if source["id"].startswith("claim-")
+            else priority.get(source.get("category"), 3),
+        )[:20]
+        candidates.append(
+            {
+                "number": candidate["number"],
+                "title": candidate["title"],
+                "status": candidate["status"],
+                "risks": candidate["risks"][:20],
+                "risks_omitted": max(0, len(candidate["risks"]) - 20),
+                "relevance": {
+                    "kind": candidate.get("relevance", {}).get("kind"),
+                    "label": candidate.get("relevance", {}).get("label"),
+                },
+                "policy_check": candidate.get("policy_check"),
+                "sources": [
+                    {
+                        **source,
+                        "excerpt": source["excerpt"][
+                            : 2000 if source["id"].startswith("issue-") else 600
+                        ],
+                        "model_excerpt_truncated": len(source["excerpt"])
+                        > (2000 if source["id"].startswith("issue-") else 600),
+                    }
+                    for source in sources
+                ],
+                "sources_omitted": len(candidate["sources"]) - len(sources),
+            }
+        )
+    return {
+        "stack": report["stack"],
+        "repository": report["repository"],
+        "documents": documents,
+        "policy": {
+            "status": "unreviewed",
+            "note": policy.get("note"),
+            "findings": findings,
+            "findings_omitted": len(policy.get("findings", [])) - len(findings),
+        },
+        "candidates": candidates,
+        "note": "仅发送有上限的原文摘录；普通引用不代表解决意图，文件存在不代表根因，协作状态不代表贡献许可。",
+    }
+
+
 def validate_analysis(data, report):
     if not isinstance(data, dict) or not isinstance(data.get("analyses"), list):
         raise ResearchError("AI 输出缺少 analyses 数组。")
@@ -120,15 +193,7 @@ def enhance(report):
     ):
         raise ResearchError("模型地址须为 HTTPS；本地模型可使用 localhost HTTP。")
     model = os.environ["SCOUT_LLM_MODEL"]
-    source_data = {
-        "stack": report["stack"],
-        "repository": report["repository"],
-        "documents": [
-            {**doc, "text": doc["text"][:6000]} for doc in report["documents"]
-        ],
-        "policy": report.get("policy", {}),
-        "candidates": report["candidates"],
-    }
+    source_data = model_input(report)
     payload = {
         "model": model,
         "max_completion_tokens": 4000,
@@ -144,6 +209,7 @@ def enhance(report):
                     '"verification_plan":"复现和验证思路，未实际执行","source_ids":["issue-123","doc-1"]}]}。'
                     "每个条目至少引用它对应的 issue ID；引用只能来自该候选和已提供文档。"
                     "来源引用只能证明引用存在，不能保证推论正确；因此保持建议语气。"
+                    "普通引用不代表解决意图；文件存在不代表根因；协作状态不代表贡献许可。每个文本字段尽量在 120 字内，避免重复通用建议。"
                 ),
             },
             {"role": "user", "content": json.dumps(source_data, ensure_ascii=False)},
@@ -165,7 +231,7 @@ def enhance(report):
         if raw["choices"][0].get("finish_reason") in {"length", "content_filter"}:
             raise ResearchError("模型输出被截断或过滤，已丢弃本次分析。")
         data = json.loads(raw["choices"][0]["message"]["content"])
-        analyses = validate_analysis(data, report)
+        analyses = validate_analysis(data, source_data)
     except HTTPError as exc:
         exc.close()
         raise ResearchError(
