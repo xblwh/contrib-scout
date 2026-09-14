@@ -10,3 +10,4 @@ dist/
 !.env.example
 reports/
 .DS_Store
+.ruff_cache/

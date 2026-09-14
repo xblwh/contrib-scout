@@ -25,7 +25,11 @@ class ServerTests(unittest.TestCase):
         cls.thread.join()
 
     def request(self, path, data=None, headers=None):
-        req = Request(self.base + path, data=json.dumps(data).encode() if data is not None else None, headers=headers or {})
+        req = Request(
+            self.base + path,
+            data=json.dumps(data).encode() if data is not None else None,
+            headers=headers or {},
+        )
         with urlopen(req, timeout=5) as response:
             return json.load(response)
 
@@ -48,7 +52,11 @@ class ServerTests(unittest.TestCase):
 
     def test_cross_origin_post_rejected(self):
         with self.assertRaises(HTTPError) as error:
-            self.request("/api/research", {"repo": "demo/project"}, {"X-Scout-Token": self.server.csrf, "Origin": "https://evil.test"})
+            self.request(
+                "/api/research",
+                {"repo": "demo/project"},
+                {"X-Scout-Token": self.server.csrf, "Origin": "https://evil.test"},
+            )
         self.assertEqual(error.exception.code, 403)
         error.exception.close()
 
@@ -61,26 +69,57 @@ class ServerTests(unittest.TestCase):
 
     def test_async_job_completes_and_download_text_matches(self):
         with patch("contrib_scout.server.research", return_value=demo_report()):
-            created = self.request("/api/research", {"repo": "demo/project", "ai": False}, {"X-Scout-Token": self.server.csrf})
+            created = self.request(
+                "/api/research",
+                {"repo": "demo/project", "ai": False},
+                {"X-Scout-Token": self.server.csrf},
+            )
             for _ in range(50):
                 job = self.request("/api/jobs/" + created["job_id"])
                 if job["state"] != "running":
                     break
-                time.sleep(.01)
+                time.sleep(0.01)
             self.assertEqual(job["state"], "complete")
             self.assertEqual(job["markdown"], markdown(job["report"]))
-            with urlopen(self.base + "/api/jobs/" + created["job_id"] + "/report.md") as response:
-                self.assertIn('attachment;', response.headers['Content-Disposition'])
+            with urlopen(
+                self.base + "/api/jobs/" + created["job_id"] + "/report.md"
+            ) as response:
+                self.assertIn("attachment;", response.headers["Content-Disposition"])
                 self.assertEqual(response.read().decode(), job["markdown"])
+            with urlopen(
+                self.base + "/api/jobs/" + created["job_id"] + "/report.json"
+            ) as response:
+                self.assertIn("attachment;", response.headers["Content-Disposition"])
+                self.assertEqual(json.load(response), job["report"])
 
     def test_demo_download_has_attachment_header(self):
         with urlopen(self.base + "/api/demo.md") as response:
-            self.assertIn('attachment;', response.headers['Content-Disposition'])
-            self.assertIn('虚构', response.read().decode())
+            self.assertIn("attachment;", response.headers["Content-Disposition"])
+            self.assertIn("虚构", response.read().decode())
 
     def test_occupied_port_reports_os_error_without_masking_it(self):
         with self.assertRaises(OSError):
-            ScoutServer(('127.0.0.1', self.server.server_port))
+            ScoutServer(("127.0.0.1", self.server.server_port))
+
+    def test_parameters_rejected_before_starting_a_job(self):
+        for payload in [
+            {"repo": "demo/project", "limit": True},
+            {"repo": "demo/project", "limit": 9},
+            {"repo": "demo/project", "stack": []},
+        ]:
+            before = len(self.server.jobs)
+            with self.assertRaises(HTTPError) as error:
+                self.request(
+                    "/api/research", payload, {"X-Scout-Token": self.server.csrf}
+                )
+            self.assertEqual(error.exception.code, 400)
+            error.exception.close()
+            self.assertEqual(len(self.server.jobs), before)
+
+    def test_json_demo_download_contains_report(self):
+        with urlopen(self.base + "/api/demo.json") as response:
+            self.assertTrue(json.load(response)["demo"])
+            self.assertIn("attachment;", response.headers["Content-Disposition"])
 
 
 if __name__ == "__main__":
