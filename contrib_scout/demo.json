@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "demo": true,
   "generated_at": "2026-09-14T10:00:00+00:00",
   "repository": {
@@ -23,14 +23,18 @@
       "path": "README.md",
       "url": "https://example.invalid/demo/document-kit/blob/main/README.md",
       "text": "虚构演示 README。",
-      "truncated": false
+      "truncated": false,
+      "inherited": false,
+      "repository": "demo/document-kit"
     },
     {
       "id": "doc-2",
       "path": ".github/CONTRIBUTING.md",
       "url": "https://example.invalid/demo/document-kit/blob/main/.github/CONTRIBUTING.md",
-      "text": "虚构演示规则：提交前先复现，附测试，功能修改先沟通。",
-      "truncated": false
+      "text": "# Contributing（虚构演示）\n\nPlease discuss feature changes before submitting a PR.\nDisclose AI assistance and review generated changes.\nClaim an issue before starting.\n",
+      "truncated": false,
+      "inherited": false,
+      "repository": "demo/document-kit"
     }
   ],
   "candidates": [
@@ -47,13 +51,15 @@
         "examples"
       ],
       "assignees": [],
-      "status": "investigate",
-      "status_label": "可继续调研",
+      "status": "review",
+      "status_label": "需要核实",
       "reasons": [
         "问题文本/标签包含 Python",
         "维护者标注 good first issue"
       ],
-      "risks": [],
+      "risks": [
+        "发现贡献规则原文线索，需核实适用范围和前置条件。"
+      ],
       "related_prs": [],
       "sources": [
         {
@@ -68,7 +74,13 @@
         "在当前默认分支复现问题，并检查相关 PR 的实际 diff。",
         "复现后再确定最小改动与回归测试；本报告未执行代码。"
       ],
-      "ai": null
+      "ai": null,
+      "coverage": {
+        "timeline_scanned": 0,
+        "timeline_complete": true,
+        "comments_scanned": 0,
+        "comments_complete": true
+      }
     },
     {
       "number": 57,
@@ -90,7 +102,8 @@
         "问题文本/标签包含 TypeScript"
       ],
       "risks": [
-        "已有 assignee：demo-contributor"
+        "已有 assignee：demo-contributor",
+        "发现贡献规则原文线索，需核实适用范围和前置条件。"
       ],
       "related_prs": [],
       "sources": [
@@ -106,7 +119,13 @@
         "在当前默认分支复现问题，并检查相关 PR 的实际 diff。",
         "复现后再确定最小改动与回归测试；本报告未执行代码。"
       ],
-      "ai": null
+      "ai": null,
+      "coverage": {
+        "timeline_scanned": 0,
+        "timeline_complete": true,
+        "comments_scanned": 0,
+        "comments_complete": true
+      }
     },
     {
       "number": 61,
@@ -126,7 +145,8 @@
         "问题文本/标签包含 Python"
       ],
       "risks": [
-        "评论中出现认领意向；可能已过期，需要人工核实。"
+        "评论中出现认领意向；可能已过期，需要人工核实。",
+        "发现贡献规则原文线索，需核实适用范围和前置条件。"
       ],
       "related_prs": [],
       "sources": [
@@ -148,7 +168,13 @@
         "在当前默认分支复现问题，并检查相关 PR 的实际 diff。",
         "复现后再确定最小改动与回归测试；本报告未执行代码。"
       ],
-      "ai": null
+      "ai": null,
+      "coverage": {
+        "timeline_scanned": 0,
+        "timeline_complete": true,
+        "comments_scanned": 1,
+        "comments_complete": true
+      }
     }
   ],
   "warnings": [
@@ -162,7 +188,9 @@
     "issue_window_complete": true,
     "source_code_checked": false,
     "policy_reviewed": false,
-    "note": "演示数据全部虚构。真实调研只提供线索，仍需核对源码、复现问题、阅读贡献政策并检查历史 PR。"
+    "note": "演示数据全部虚构。真实调研只提供线索，仍需核对源码、复现问题、阅读贡献政策并检查历史 PR。",
+    "closed_prs_scanned": 12,
+    "closed_prs_complete": true
   },
   "metrics": {
     "github_requests": 0,
@@ -170,5 +198,59 @@
   },
   "ai": {
     "enabled": false
+  },
+  "target": {
+    "mode": "repository",
+    "input": "demo/document-kit",
+    "issue_number": null
+  },
+  "policy": {
+    "status": "unreviewed",
+    "contributing_found": true,
+    "documents_complete": true,
+    "checked_paths": [],
+    "findings": [
+      {
+        "id": "policy-doc-2-3",
+        "document_id": "doc-2",
+        "path": ".github/CONTRIBUTING.md",
+        "line": 3,
+        "categories": [
+          "讨论或审批线索"
+        ],
+        "quote": "Please discuss feature changes before submitting a PR.",
+        "quote_truncated": false,
+        "url": "https://example.invalid/demo/document-kit/blob/main/.github/CONTRIBUTING.md#L3",
+        "inherited": false
+      },
+      {
+        "id": "policy-doc-2-4",
+        "document_id": "doc-2",
+        "path": ".github/CONTRIBUTING.md",
+        "line": 4,
+        "categories": [
+          "AI 使用规则线索"
+        ],
+        "quote": "Disclose AI assistance and review generated changes.",
+        "quote_truncated": false,
+        "url": "https://example.invalid/demo/document-kit/blob/main/.github/CONTRIBUTING.md#L4",
+        "inherited": false
+      },
+      {
+        "id": "policy-doc-2-5",
+        "document_id": "doc-2",
+        "path": ".github/CONTRIBUTING.md",
+        "line": 5,
+        "categories": [
+          "认领或指派线索"
+        ],
+        "quote": "Claim an issue before starting.",
+        "quote_truncated": false,
+        "url": "https://example.invalid/demo/document-kit/blob/main/.github/CONTRIBUTING.md#L5",
+        "inherited": false
+      }
+    ],
+    "findings_truncated": false,
+    "note": "演示规则全部虚构。真实报告中的原文线索需要结合上下文逐条核实，不构成贡献许可。"
   }
 }
