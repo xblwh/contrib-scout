@@ -1,0 +1,126 @@
+.case-page {
+  max-width: 960px;
+  padding-bottom: 20px;
+}
+.case-back {
+  font-size: 12px;
+  color: var(--green);
+}
+.case-intro {
+  padding: 55px 0 32px;
+}
+.case-page h1 {
+  font-size: clamp(30px, 4vw, 43px);
+}
+.case-page h2 {
+  font-size: 21px;
+  font-weight: 600;
+  margin: 0 0 22px;
+}
+.case-page p,
+.case-page dd {
+  font-size: 14px;
+  line-height: 1.95;
+  color: #52675d;
+  overflow-wrap: anywhere;
+}
+.case-lead {
+  max-width: 690px;
+}
+.case-outcome {
+  margin-top: 28px;
+  padding: 20px 24px;
+  background: #edf3df;
+  border: 1px solid #d4e2bf;
+  border-radius: 10px;
+}
+.case-outcome strong {
+  font-size: 16px;
+}
+.case-outcome p {
+  margin: 8px 0 0;
+}
+.case-roles {
+  padding: 22px 0 38px;
+}
+.case-roles dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0;
+}
+.case-roles dl > div {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+.case-roles dt {
+  font-weight: 600;
+}
+.case-roles dd {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+.case-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 32px;
+}
+.case-timeline li {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 20px;
+  border-top: 1px solid var(--line);
+  padding: 26px 0;
+}
+.case-step {
+  color: var(--green);
+  font-family: monospace;
+  font-size: 16px;
+  padding-top: 2px;
+}
+.case-timeline h3 {
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 0;
+  font-weight: 600;
+}
+.case-timeline p {
+  margin: 10px 0 0;
+}
+.case-page .case-evidence {
+  font-size: 12px;
+  color: #657665;
+}
+.case-panel {
+  padding: 24px;
+  margin: 20px 0;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.case-panel h2 {
+  margin-bottom: 12px;
+}
+.case-panel p:last-child {
+  margin-bottom: 0;
+}
+@media (max-width: 760px) {
+  .case-intro {
+    padding-top: 36px;
+  }
+  .case-roles dl {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .case-timeline li {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 10px;
+  }
+  .case-panel,
+  .case-outcome {
+    padding: 18px;
+  }
+  .case-back {
+    font-size: 11px;
+  }
+}
