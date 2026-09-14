@@ -134,7 +134,7 @@ tests/           离线自动化测试
 docs/            架构、开发、评测与报告格式说明
 ```
 
-设计取舍见 [architecture.md](docs/architecture.md)，验证范围见 [evaluation.md](docs/evaluation.md)，JSON 字段见 [report-schema.md](docs/report-schema.md)，参与开发见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+设计取舍见 [architecture.md](docs/architecture.md)，验证范围见 [evaluation.md](docs/evaluation.md)，JSON 字段见 [report-schema.md](docs/report-schema.md)，调试入口见 [development-guide.md](docs/development-guide.md)，参与开发见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 当前边界
 
