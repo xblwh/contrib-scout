@@ -106,6 +106,8 @@ class ServerTests(unittest.TestCase):
             {"repo": "demo/project", "limit": True},
             {"repo": "demo/project", "limit": 9},
             {"repo": "demo/project", "stack": []},
+            {"repo": "demo/project", "include_unmatched": "false"},
+            {"repo": "demo/project", "check_sources": 0},
         ]:
             before = len(self.server.jobs)
             with self.assertRaises(HTTPError) as error:
@@ -115,6 +117,48 @@ class ServerTests(unittest.TestCase):
             self.assertEqual(error.exception.code, 400)
             error.exception.close()
             self.assertEqual(len(self.server.jobs), before)
+
+    def test_refresh_inputs_and_options_survive_running_and_completed_job(self):
+        started, release = threading.Event(), threading.Event()
+
+        def held_research(*args, **kwargs):
+            started.set()
+            release.wait(5)
+            return demo_report()
+
+        payload = {
+            "repo": "demo/project#42",
+            "stack": "Rust",
+            "limit": 8,
+            "ai": False,
+            "include_unmatched": True,
+            "check_sources": False,
+        }
+        with patch(
+            "contrib_scout.server.research", side_effect=held_research
+        ) as mocked:
+            created = self.request(
+                "/api/research",
+                {**payload, "ignored_extra": "not retained"},
+                {"X-Scout-Token": self.server.csrf},
+            )
+            try:
+                self.assertTrue(started.wait(3))
+                path = "/api/jobs/" + created["job_id"]
+                running = self.request(path)
+                self.assertEqual(running["state"], "running")
+                self.assertEqual(running["request"], payload)
+            finally:
+                release.set()
+            for _ in range(50):
+                complete = self.request(path)
+                if complete["state"] != "running":
+                    break
+                time.sleep(0.01)
+            self.assertEqual(complete["request"], payload)
+            self.assertEqual(complete["state"], "complete")
+            self.assertTrue(mocked.call_args.kwargs["include_unmatched"])
+            self.assertFalse(mocked.call_args.kwargs["check_sources"])
 
     def test_json_demo_download_contains_report(self):
         with urlopen(self.base + "/api/demo.json") as response:

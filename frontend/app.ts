@@ -1,6 +1,12 @@
 export {};
 
-type Source = { id: string; label: string; url: string; excerpt: string };
+type Source = {
+  id: string;
+  label: string;
+  url: string;
+  excerpt: string;
+  category?: string;
+};
 type Candidate = {
   number: number;
   title: string;
@@ -15,12 +21,59 @@ type Candidate = {
   risks: string[];
   sources: Source[];
   next_steps: string[];
+  relevance?: {
+    kind: string;
+    label: string;
+    note: string;
+    evidence: {
+      label: string;
+      excerpt: string;
+      terms: string[];
+      source_id?: string;
+      url: string;
+    }[];
+  };
+  policy_check?: {
+    status: string;
+    documents_complete: boolean;
+    contributing_found: boolean;
+    finding_count: number;
+  };
+  action_plan?: {
+    kind: string;
+    title: string;
+    detail: string;
+    source_ids: string[];
+  }[];
+  source_hints?: {
+    files: {
+      path: string;
+      url: string;
+      excerpt: string;
+      note: string;
+      source_id?: string;
+    }[];
+    unverified: { path: string; reason: string }[];
+    paths_omitted?: number;
+    note: string;
+    snapshot: string | null;
+  };
+  problem_evidence?: { label: string; text: string; truncated: boolean }[];
+  reproduction?: {
+    language: string;
+    text: string;
+    truncated: boolean;
+    note: string;
+  } | null;
   related_prs: {
     number: number;
     title: string;
     url: string;
     state: string;
     reason: string;
+    repository?: string;
+    relation?: string;
+    relation_label?: string;
   }[];
   ai: null | {
     summary: string;
@@ -44,9 +97,16 @@ type Report = {
   generated_at: string;
   stack: string[];
   target?: { mode: string; input: string; issue_number: number | null };
+  selection?: {
+    include_unmatched: boolean;
+    unmatched_excluded: number;
+    matched_available: number;
+    requested: number;
+  };
   policy?: {
     note: string;
     contributing_found: boolean;
+    documents_complete?: boolean;
     findings: PolicyFinding[];
   };
   repository: {
@@ -69,6 +129,8 @@ type Report = {
     open_prs_complete: boolean;
     closed_prs_scanned?: number;
     closed_prs_complete?: boolean;
+    source_lookup_enabled?: boolean;
+    source_paths_checked?: number;
     note: string;
   };
   metrics: { github_requests: number; elapsed_seconds: number };
@@ -82,10 +144,19 @@ type Report = {
   };
 };
 type Result = { report: Report; markdown: string };
+type ResearchRequest = {
+  repo: string;
+  stack: string;
+  limit: number;
+  ai: boolean;
+  include_unmatched: boolean;
+  check_sources: boolean;
+};
 type Job = Partial<Result> & {
   state: string;
   error?: string;
   progress?: string;
+  request?: ResearchRequest;
 };
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T => {
@@ -103,6 +174,7 @@ let current: Result | null = null;
 let filter = "all";
 let csrf = "";
 let busy = false;
+let aiConfigured = false;
 let downloadUrl = "/api/demo.md";
 const storageKey = "contrib-scout:last-report";
 function remember(value: string | null): void {
@@ -158,11 +230,23 @@ function feedback(message: string, state = "info"): void {
 }
 function busyUI(value: boolean): void {
   busy = value;
+  for (const id of [
+    "repo",
+    "stack",
+    "limit",
+    "include-unmatched",
+    "check-sources",
+  ]) {
+    $<HTMLInputElement | HTMLSelectElement>(id).disabled = value;
+  }
+  $<HTMLInputElement>("ai").disabled = value || !aiConfigured;
   $<HTMLButtonElement>("submit").disabled = value;
   $<HTMLButtonElement>("demo").disabled = value;
   $<HTMLButtonElement>("empty-demo").disabled = value;
   $("submit").textContent = value ? "正在读取来源…" : "开始调研 ↗";
   document.querySelector(".results")?.setAttribute("aria-busy", String(value));
+  $("report").hidden = value || !current;
+  $("empty").hidden = value || Boolean(current);
 }
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, options);
@@ -170,6 +254,26 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
   if (!response.ok)
     throw new Error(data.error || `请求失败（${response.status}）`);
   return data;
+}
+
+function references(ids: string[], item: Candidate): HTMLElement {
+  const node = el("div", "step-references");
+  if (!current) return node;
+  const lookup = new Map<string, { label: string; url: string }>([
+    ...item.sources.map((source) => [source.id, source] as const),
+    ...current.report.documents.map(
+      (doc) => [doc.id, { label: doc.path, url: doc.url }] as const,
+    ),
+    ...(current.report.policy?.findings ?? []).map(
+      (row) =>
+        [row.id, { label: `${row.path}:${row.line}`, url: row.url }] as const,
+    ),
+  ]);
+  for (const id of ids) {
+    const source = lookup.get(id);
+    if (source) node.append(link(source.label + " ↗", source.url));
+  }
+  return node;
 }
 
 function renderCandidates(): void {
@@ -188,7 +292,9 @@ function renderCandidates(): void {
       el(
         "p",
         "no-results",
-        "这个范围内没有候选。可以调整筛选，或换一个仓库继续调研。",
+        current.report.candidates.length
+          ? "当前筛选下没有候选。切换“全部”可查看其他协作状态。"
+          : "本次没有找到符合筛选条件的候选。可以在“筛选与文件核实”中勾选“也看未匹配的问题”，或调整技术栈与目标仓库。",
       ),
     );
     return;
@@ -211,18 +317,44 @@ function renderCandidates(): void {
     item.labels
       .slice(0, 5)
       .forEach((label) => tags.append(el("span", "", label)));
-    const reason = el("p", "match-reason", item.reasons.join(" · "));
-    card.append(top, heading, meta, tags, reason);
+    card.append(top, heading, meta, tags);
+    if (!item.relevance)
+      card.append(el("p", "match-reason", item.reasons.join(" · ")));
+    if (item.relevance) {
+      const match = el("div", `match-evidence ${item.relevance.kind}`);
+      match.append(el("strong", "", item.relevance.label));
+      const first = item.relevance.evidence[0];
+      if (first)
+        match.append(el("p", "", `${first.label}：${first.terms.join("、")}`));
+      const body =
+        first && ["问题正文", "原文路径的扩展名"].includes(first.label)
+          ? first
+          : undefined;
+      if (body) match.append(el("blockquote", "", body.excerpt));
+      else if (item.relevance.kind === "repository" && first)
+        match.append(el("blockquote", "", first.excerpt));
+      match.append(el("small", "", item.relevance.note));
+      card.append(match);
+    }
+    if (item.policy_check) {
+      card.append(
+        el(
+          "p",
+          "policy-obligation",
+          `贡献规则：待人工确认${!item.policy_check.documents_complete || !item.policy_check.contributing_found ? " · 文档缺失或读取不完整" : ` · ${item.policy_check.finding_count} 条原文线索`}。协作状态不代表贡献许可。`,
+        ),
+      );
+    }
     if (item.risks.length) {
       const risks = el("div", "risk-box");
       risks.append(el("strong", "", "需要留意"), list(item.risks));
       card.append(risks);
-    } else {
+    } else if (!item.policy_check) {
       card.append(
         el(
           "p",
           "quiet-note",
-          "当前扫描范围内未发现认领或关联 PR 风险；贡献规则与源码仍待核实。",
+          "已读取范围内未发现占用或明确解决意图；普通引用单独列出，规则与源码仍待核实。",
         ),
       );
     }
@@ -230,10 +362,80 @@ function renderCandidates(): void {
     details.open = index === 0;
     details.append(el("summary", "", "查看证据与下一步"));
     const content = el("div", "detail-content");
-    content.append(
-      el("div", "mini-label", "建议下一步"),
-      list(item.next_steps, "next-steps"),
-    );
+    content.append(el("div", "mini-label", "建议下一步 · 有来源，未执行"));
+    if (item.action_plan) {
+      const steps = el("ol", "action-plan");
+      for (const step of item.action_plan) {
+        const row = el("li");
+        row.append(
+          el("strong", "", step.title),
+          el("p", "", step.detail),
+          references(step.source_ids, item),
+        );
+        steps.append(row);
+      }
+      content.append(steps);
+    } else content.append(list(item.next_steps, "next-steps"));
+    if (item.source_hints) {
+      const paths = el("details", "source-paths");
+      paths.append(
+        el(
+          "summary",
+          "",
+          `文件入口 · 已核实 ${item.source_hints.files.length} · 未核实 ${item.source_hints.unverified.length}`,
+        ),
+        el("p", "quiet-note", item.source_hints.note),
+      );
+      for (const file of item.source_hints.files)
+        paths.append(
+          link(file.path + " ↗", file.url),
+          el("p", "quiet-note", file.note),
+          el("pre", "source-excerpt", file.excerpt),
+        );
+      if (item.source_hints.unverified.length)
+        paths.append(
+          list(
+            item.source_hints.unverified.map(
+              (row) => `${row.path}：${row.reason}`,
+            ),
+          ),
+        );
+      if (item.source_hints.paths_omitted)
+        paths.append(
+          el(
+            "p",
+            "quiet-note",
+            `另有 ${item.source_hints.paths_omitted} 个原文路径未展示，请阅读完整 issue。`,
+          ),
+        );
+      content.append(paths);
+    }
+    if (item.reproduction || item.problem_evidence?.length) {
+      const material = el("details", "problem-material");
+      material.append(
+        el("summary", "", "问题原文中的行为与代码摘录（未验证）"),
+      );
+      for (const section of item.problem_evidence ?? [])
+        material.append(
+          el("strong", "", section.label),
+          el(
+            "blockquote",
+            "",
+            section.text + (section.truncated ? "…（截断）" : ""),
+          ),
+        );
+      if (item.reproduction)
+        material.append(
+          el("p", "quiet-note", item.reproduction.note),
+          el(
+            "pre",
+            "source-excerpt",
+            item.reproduction.text +
+              (item.reproduction.truncated ? "\n…（截断）" : ""),
+          ),
+        );
+      content.append(material);
+    }
     if (item.ai) {
       const analysis = el("div", "ai-analysis");
       analysis.append(
@@ -267,14 +469,34 @@ function renderCandidates(): void {
       content.append(analysis);
     }
     content.append(el("div", "mini-label", "来源证据"));
-    item.sources.forEach((source) => {
-      const block = el("div", "evidence");
-      block.append(
-        link(source.label + " ↗", source.url),
-        el("blockquote", "", source.excerpt.slice(0, 700)),
+    item.sources
+      .filter(
+        (source) =>
+          !["mention", "match", "file"].includes(source.category ?? ""),
+      )
+      .forEach((source) => {
+        const block = el("div", "evidence");
+        block.append(
+          link(source.label + " ↗", source.url),
+          el("blockquote", "", source.excerpt.slice(0, 700)),
+        );
+        content.append(block);
+      });
+    const mentions = item.sources.filter(
+      (source) => source.category === "mention",
+    );
+    if (mentions.length) {
+      const other = el("details", "ordinary-references");
+      other.append(
+        el("summary", "", `普通引用 · ${mentions.length} 条，不作为占用依据`),
       );
-      content.append(block);
-    });
+      for (const source of mentions)
+        other.append(
+          link(source.label, source.url),
+          el("p", "quiet-note", source.excerpt),
+        );
+      content.append(other);
+    }
     details.append(content);
     card.append(details);
     container.append(card);
@@ -313,16 +535,21 @@ function render(result: Result): void {
     [String(report.coverage.closed_prs_scanned ?? 0), "检查的关闭 PR"],
     [
       String(
-        report.candidates.filter((item) => item.status === "investigate")
+        report.candidates.filter((item) => item.relevance?.kind === "direct")
           .length,
       ),
-      "可继续调研",
+      "问题文本有匹配",
     ],
   ].forEach(([value, label]) => {
     const stat = el("div", "stat");
     stat.append(el("strong", "", value), el("span", "", label));
     stats.append(stat);
   });
+  const selection = report.selection;
+  $("selection-note").textContent =
+    report.target?.mode === "issue"
+      ? "指定问题模式：保留该 issue 并说明相关性。下方状态只描述协作线索，贡献规则需单独确认。"
+      : `从 ${report.coverage.issues_scanned} 个问题中保留 ${report.candidates.length} 个候选${selection?.unmatched_excluded ? `，排除 ${selection.unmatched_excluded} 个未匹配的问题` : ""}。文本匹配、仓库语言和协作状态分别展示；候选数量是上限。`;
   const documents = $("documents");
   documents.replaceChildren(el("span", "mini-label", "仓库文档"));
   report.documents.forEach((doc) =>
@@ -363,6 +590,13 @@ function renderPolicy(report: Report): void {
   const findings = report.policy?.findings ?? [];
   details.append(
     el("summary", "", `贡献规则原文线索 · ${findings.length} 条待核实`),
+  );
+  details.append(
+    el(
+      "p",
+      "policy-obligation",
+      "贡献规则尚未人工确认。此项独立于问题是否被认领、是否有关联解决方案。",
+    ),
   );
   details.append(
     el(
@@ -411,6 +645,16 @@ async function waitForJob(jobId: string, started = Date.now()): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       continue;
     }
+    if (result.request) {
+      const request = result.request;
+      $<HTMLInputElement>("repo").value = request.repo;
+      $<HTMLInputElement>("stack").value = request.stack;
+      $<HTMLSelectElement>("limit").value = String(request.limit);
+      $<HTMLInputElement>("ai").checked = request.ai;
+      $<HTMLInputElement>("include-unmatched").checked =
+        request.include_unmatched;
+      $<HTMLInputElement>("check-sources").checked = request.check_sources;
+    }
     if (result.state === "error") {
       remember(null);
       throw new Error(result.error || "调研失败。");
@@ -425,6 +669,14 @@ async function waitForJob(jobId: string, started = Date.now()): Promise<void> {
       $<HTMLInputElement>("repo").value =
         result.report.target?.input ?? result.report.repository.name;
       $<HTMLInputElement>("stack").value = result.report.stack.join(", ");
+      $<HTMLInputElement>("include-unmatched").checked =
+        result.report.selection?.include_unmatched ?? false;
+      $<HTMLInputElement>("check-sources").checked =
+        result.report.coverage.source_lookup_enabled ?? true;
+      const requested = result.report.selection?.requested;
+      if (!result.request && requested && [3, 5, 8].includes(requested)) {
+        $<HTMLSelectElement>("limit").value = String(requested);
+      }
       render({ report: result.report, markdown: result.markdown });
       return;
     }
@@ -473,15 +725,18 @@ $("research-form").addEventListener("submit", async (event) => {
         stack: $<HTMLInputElement>("stack").value,
         limit: Number($<HTMLSelectElement>("limit").value),
         ai: $<HTMLInputElement>("ai").checked,
+        include_unmatched: $<HTMLInputElement>("include-unmatched").checked,
+        check_sources: $<HTMLInputElement>("check-sources").checked,
       }),
     });
     remember(job.job_id);
     await waitForJob(job.job_id, started);
   } catch (error) {
     feedback(
-      error instanceof Error
+      (error instanceof Error
         ? error.message
-        : "网络请求失败，请确认本地服务仍在运行。",
+        : "网络请求失败，请确认本地服务仍在运行。") +
+        (current ? " 下方仍为上一次报告，本次未生成新结果。" : ""),
       "error",
     );
   } finally {
@@ -520,7 +775,8 @@ $("export-json").addEventListener("click", () => {
 api<{ ai_configured: boolean; csrf: string }>("/api/config")
   .then(async (config) => {
     csrf = config.csrf;
-    $<HTMLInputElement>("ai").disabled = !config.ai_configured;
+    aiConfigured = config.ai_configured;
+    $<HTMLInputElement>("ai").disabled = busy || !aiConfigured;
     $("ai-note").textContent = config.ai_configured
       ? "模型已配置，按需启用"
       : "未配置模型 · 基础调研可用";

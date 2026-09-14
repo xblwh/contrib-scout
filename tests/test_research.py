@@ -93,13 +93,14 @@ class ResearchTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(ResearchError):
                 parse_repo(value)
 
-    def test_cross_repository_timeline_reference_needs_comparison(self):
+    def test_cross_repository_mention_does_not_imply_solution_or_occupancy(self):
         source = {
             "number": 99,
             "title": "Alternative implementation",
             "state": "open",
             "html_url": "https://github.com/other/project/pull/99",
             "pull_request": {},
+            "repository": {"private": False},
         }
         result = self.assess(
             timeline=[
@@ -109,8 +110,9 @@ class ResearchTests(unittest.TestCase):
                 }
             ]
         )
-        self.assertEqual(result["status"], "review")
+        self.assertEqual(result["status"], "investigate")
         self.assertEqual(result["related_prs"][0]["kind"], "timeline")
+        self.assertEqual(result["related_prs"][0]["relation"], "mention")
 
     def test_explicit_reference_blocks_even_with_different_title(self):
         result = self.assess(pulls=[pull(title="Fix buffer handling")])
@@ -177,6 +179,7 @@ class ResearchTests(unittest.TestCase):
                         "issue": {
                             "number": 99,
                             "title": "Fix this",
+                            "body": "Fixes #42",
                             "state": "closed",
                             "html_url": "https://github.com/demo/project/pull/99",
                             "pull_request": {"merged_at": "2026-09-13T00:00:00Z"},

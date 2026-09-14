@@ -155,8 +155,10 @@ class PolicyTests(unittest.TestCase):
         report = research("demo/project#42", client=Client())
         self.assertEqual(report["policy"]["findings"], [])
         candidate = report["candidates"][0]
-        self.assertEqual(candidate["status"], "review")
-        self.assertTrue(any("共享贡献规则" in risk for risk in candidate["risks"]))
+        self.assertEqual(candidate["status"], "investigate")
+        self.assertEqual(candidate["policy_check"]["status"], "unreviewed")
+        self.assertTrue(any(doc["inherited"] for doc in report["documents"]))
+        self.assertTrue(any("共享" in step for step in candidate["next_steps"]))
 
     def test_local_guidelines_take_precedence(self):
         class Client(FakeGitHub):
@@ -171,14 +173,18 @@ class PolicyTests(unittest.TestCase):
         self.assertTrue(policy["contributing_found"])
         self.assertFalse(docs[0]["inherited"])
 
-    def test_failed_policy_read_produces_candidate_risk(self):
+    def test_failed_policy_read_stays_visible_separate_from_occupancy(self):
         class Client(FakeGitHub):
             def document(self, repo, path):
                 raise ResearchError("Temporarily unavailable")
 
         report = research("demo/project#42", client=Client())
         self.assertFalse(report["policy"]["documents_complete"])
-        self.assertEqual(report["candidates"][0]["status"], "review")
+        self.assertEqual(report["candidates"][0]["status"], "investigate")
+        self.assertFalse(report["candidates"][0]["policy_check"]["documents_complete"])
+        self.assertEqual(
+            report["candidates"][0]["policy_check"]["status"], "unreviewed"
+        )
 
 
 class RelatedPullTests(unittest.TestCase):

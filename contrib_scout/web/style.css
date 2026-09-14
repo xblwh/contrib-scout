@@ -241,18 +241,6 @@ select {
   line-height: 1.65;
   margin: 8px 0 0;
 }
-.stack-tags {
-  display: flex;
-  gap: 6px;
-  margin-top: 10px;
-}
-.stack-tags span {
-  background: #f0f4eb;
-  padding: 4px 7px;
-  border-radius: 4px;
-  font-size: 9px;
-  color: #69845b;
-}
 .toggle-row {
   display: flex;
   align-items: center;
@@ -877,9 +865,6 @@ select {
   .workflow-note {
     display: none;
   }
-  .stack-tags {
-    display: none;
-  }
   .toggle-row {
     margin-top: 18px;
   }
@@ -965,6 +950,129 @@ select {
   color: var(--green);
   font-size: 11px;
   margin-bottom: 7px;
+}
+.selection-note {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+  margin: -8px 0 20px;
+}
+.research-options {
+  margin: 16px 0 22px;
+  font-size: 12px;
+}
+.research-options summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.research-options .check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.check-row input {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  margin: 3px 0 0;
+  accent-color: #3e6757;
+}
+.match-evidence {
+  background: #f5f7f3;
+  border-left: 3px solid #c7d6c6;
+  padding: 12px 14px;
+  margin: 12px 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.match-evidence.repository,
+.match-evidence.unknown {
+  border-left-color: #c9b887;
+}
+.match-evidence blockquote {
+  margin: 8px 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #53615b;
+  max-height: 100px;
+  overflow-y: auto;
+}
+.match-evidence small {
+  display: block;
+  margin-top: 6px;
+  color: #76817b;
+}
+.policy-obligation {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #7b6e4c;
+  margin: 12px 0;
+}
+.action-plan {
+  padding-left: 22px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.action-plan li {
+  padding-left: 4px;
+  margin-bottom: 18px;
+}
+.action-plan p {
+  margin: 5px 0;
+  color: #627168;
+}
+.step-references {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 11px;
+}
+.source-paths,
+.problem-material,
+.ordinary-references {
+  margin-top: 16px;
+  padding: 12px 0;
+  border-top: 1px solid #e2e7e0;
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.source-paths summary,
+.problem-material summary,
+.ordinary-references summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.source-paths > a {
+  display: block;
+  margin-top: 12px;
+}
+.source-excerpt {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  background: #f4f6f2;
+  padding: 12px;
+  max-height: 280px;
+  overflow-y: auto;
+  font-size: 11px;
+}
+.problem-material blockquote {
+  white-space: pre-wrap;
+  margin: 10px 0 20px;
+  padding-left: 12px;
+  border-left: 2px solid #d5ded1;
+}
+.problem-material strong {
+  display: block;
+  margin-top: 14px;
+}
+.ordinary-references a {
+  display: block;
+  margin-top: 12px;
 }
 .policy-panel {
   background: #f1f5eb;
