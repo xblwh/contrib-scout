@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "contrib-scout"
+version = "0.1.0"
+description = "Evidence-first GitHub contribution research, with optional AI analysis."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "xblwh"}]
+dependencies = []
+
+[project.scripts]
+contrib-scout = "contrib_scout.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["contrib_scout*"]
+
+[tool.setuptools.package-data]
+contrib_scout = ["web/*", "demo.json"]

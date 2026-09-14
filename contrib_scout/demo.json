@@ -1,0 +1,174 @@
+{
+  "version": 1,
+  "demo": true,
+  "generated_at": "2026-09-14T10:00:00+00:00",
+  "repository": {
+    "name": "demo/document-kit",
+    "url": "https://example.invalid/demo/document-kit",
+    "description": "虚构的文档处理工具，用于演示调研界面。",
+    "language": "Python",
+    "stars": 1280,
+    "license": "MIT（虚构）",
+    "archived": false,
+    "default_branch": "main",
+    "pushed_at": "2026-09-13T14:00:00Z"
+  },
+  "stack": [
+    "Python",
+    "TypeScript"
+  ],
+  "documents": [
+    {
+      "id": "doc-1",
+      "path": "README.md",
+      "url": "https://example.invalid/demo/document-kit/blob/main/README.md",
+      "text": "虚构演示 README。",
+      "truncated": false
+    },
+    {
+      "id": "doc-2",
+      "path": ".github/CONTRIBUTING.md",
+      "url": "https://example.invalid/demo/document-kit/blob/main/.github/CONTRIBUTING.md",
+      "text": "虚构演示规则：提交前先复现，附测试，功能修改先沟通。",
+      "truncated": false
+    }
+  ],
+  "candidates": [
+    {
+      "number": 42,
+      "title": "Python 流式读取示例遗漏最后一个文本片段",
+      "url": "https://example.invalid/demo/document-kit/issues/42",
+      "state": "open",
+      "created_at": "2026-09-08T10:00:00Z",
+      "updated_at": "2026-09-13T14:00:00Z",
+      "labels": [
+        "good first issue",
+        "Python",
+        "examples"
+      ],
+      "assignees": [],
+      "status": "investigate",
+      "status_label": "可继续调研",
+      "reasons": [
+        "问题文本/标签包含 Python",
+        "维护者标注 good first issue"
+      ],
+      "risks": [],
+      "related_prs": [],
+      "sources": [
+        {
+          "id": "issue-42",
+          "label": "Issue #42",
+          "url": "https://example.invalid/demo/document-kit/issues/42",
+          "excerpt": "【虚构演示】在 Python 示例中，结束事件到达时，缓冲区中剩余的内容未被输出。报告者提供了最小输入：两个文本片段，后跟一个结束事件。预期输出包含完整文本；实际缺少最后一段。需要在默认分支复现。"
+        }
+      ],
+      "next_steps": [
+        "阅读贡献规则和认领要求，确认允许当前类型的贡献。",
+        "在当前默认分支复现问题，并检查相关 PR 的实际 diff。",
+        "复现后再确定最小改动与回归测试；本报告未执行代码。"
+      ],
+      "ai": null
+    },
+    {
+      "number": 57,
+      "title": "TypeScript 客户端重试后重复发送请求头",
+      "url": "https://example.invalid/demo/document-kit/issues/57",
+      "state": "open",
+      "created_at": "2026-09-08T10:00:00Z",
+      "updated_at": "2026-09-13T14:00:00Z",
+      "labels": [
+        "bug",
+        "TypeScript"
+      ],
+      "assignees": [
+        "demo-contributor"
+      ],
+      "status": "hold",
+      "status_label": "暂缓",
+      "reasons": [
+        "问题文本/标签包含 TypeScript"
+      ],
+      "risks": [
+        "已有 assignee：demo-contributor"
+      ],
+      "related_prs": [],
+      "sources": [
+        {
+          "id": "issue-57",
+          "label": "Issue #57",
+          "url": "https://example.invalid/demo/document-kit/issues/57",
+          "excerpt": "【虚构演示】TypeScript 客户端重试请求时，示例中的请求头被重复附加。已有贡献者被指派，需避免重复实现。"
+        }
+      ],
+      "next_steps": [
+        "阅读贡献规则和认领要求，确认允许当前类型的贡献。",
+        "在当前默认分支复现问题，并检查相关 PR 的实际 diff。",
+        "复现后再确定最小改动与回归测试；本报告未执行代码。"
+      ],
+      "ai": null
+    },
+    {
+      "number": 61,
+      "title": "文档中的异步调用示例缺少错误处理",
+      "url": "https://example.invalid/demo/document-kit/issues/61",
+      "state": "open",
+      "created_at": "2026-09-08T10:00:00Z",
+      "updated_at": "2026-09-13T14:00:00Z",
+      "labels": [
+        "documentation",
+        "Python"
+      ],
+      "assignees": [],
+      "status": "review",
+      "status_label": "需要核实",
+      "reasons": [
+        "问题文本/标签包含 Python"
+      ],
+      "risks": [
+        "评论中出现认领意向；可能已过期，需要人工核实。"
+      ],
+      "related_prs": [],
+      "sources": [
+        {
+          "id": "issue-61",
+          "label": "Issue #61",
+          "url": "https://example.invalid/demo/document-kit/issues/61",
+          "excerpt": "【虚构演示】Python 异步调用示例没有说明连接中断后的处理方式。评论中有其他贡献者表达意向，尚不清楚是否开始实现。"
+        },
+        {
+          "id": "claim-123",
+          "label": "认领线索（需核实是否仍有效）",
+          "url": "https://example.invalid/demo/document-kit/issues/61#issuecomment-123",
+          "excerpt": "【虚构演示】I'd like to work on this issue. I will investigate the async example."
+        }
+      ],
+      "next_steps": [
+        "阅读贡献规则和认领要求，确认允许当前类型的贡献。",
+        "在当前默认分支复现问题，并检查相关 PR 的实际 diff。",
+        "复现后再确定最小改动与回归测试；本报告未执行代码。"
+      ],
+      "ai": null
+    }
+  ],
+  "warnings": [
+    "贡献指南已收集，具体审批要求仍需人工阅读确认。",
+    "未检查当前源码，也未运行任何复现或测试。"
+  ],
+  "coverage": {
+    "issues_scanned": 24,
+    "open_prs_scanned": 18,
+    "open_prs_complete": true,
+    "issue_window_complete": true,
+    "source_code_checked": false,
+    "policy_reviewed": false,
+    "note": "演示数据全部虚构。真实调研只提供线索，仍需核对源码、复现问题、阅读贡献政策并检查历史 PR。"
+  },
+  "metrics": {
+    "github_requests": 0,
+    "elapsed_seconds": 0
+  },
+  "ai": {
+    "enabled": false
+  }
+}
