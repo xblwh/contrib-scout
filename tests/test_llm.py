@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from contrib_scout.github import ResearchError
-from contrib_scout.llm import enhance, estimated_cost, validate_analysis
+from contrib_scout.llm import enhance, estimated_cost, model_input, validate_analysis
 from contrib_scout.research import research
 from test_research import FakeGitHub
 
@@ -36,11 +36,62 @@ class LLMTests(unittest.TestCase):
         self.assertNotIn("status", validated[42])
         self.assertEqual(self.report["candidates"][0]["state"], "open")
 
+    def test_many_claims_do_not_push_related_pr_out_of_model_context(self):
+        candidate = self.report["candidates"][0]
+        candidate["sources"] += [
+            {
+                "id": f"claim-{i}",
+                "label": "Claim",
+                "url": "https://github.com/demo/project/issues/42",
+                "excerpt": "I am working on this",
+            }
+            for i in range(25)
+        ] + [
+            {
+                "id": "related-42-0",
+                "category": "related_pr",
+                "label": "PR #99",
+                "url": "https://github.com/demo/project/pull/99",
+                "excerpt": "Fixes #42",
+            }
+        ]
+        ids = [
+            source["id"]
+            for source in model_input(self.report)["candidates"][0]["sources"]
+        ]
+        self.assertEqual(ids[:2], ["issue-42", "related-42-0"])
+
     def test_fabricated_source_rejected(self):
         value = analysis()
         value["analyses"][0]["source_ids"].append("made-up-source")
         with self.assertRaises(ResearchError):
             validate_analysis(value, self.report)
+
+    def test_projection_limits_duplicate_context_and_rejects_omitted_citations(self):
+        candidate = self.report["candidates"][0]
+        candidate["sources"] += [
+            {
+                "id": f"mention-{i}",
+                "label": "Mention",
+                "url": "https://github.com/demo/project/pull/1",
+                "excerpt": "long text " * 500,
+                "category": "mention",
+            }
+            for i in range(30)
+        ]
+        before = copy.deepcopy(self.report)
+        projected = model_input(self.report)
+        item = projected["candidates"][0]
+        self.assertEqual(len(item["sources"]), 20)
+        self.assertGreater(item["sources_omitted"], 0)
+        self.assertNotIn("action_plan", item)
+        self.assertNotIn("source_hints", item)
+        self.assertTrue(any(s["model_excerpt_truncated"] for s in item["sources"]))
+        self.assertEqual(before, self.report)
+        value = analysis()
+        value["analyses"][0]["source_ids"].append("mention-29")
+        with self.assertRaises(ResearchError):
+            validate_analysis(value, projected)
 
     def test_other_candidates_evidence_not_allowed(self):
         self.report["candidates"].append(

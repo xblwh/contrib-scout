@@ -100,7 +100,7 @@ class GitHub:
                 raise ResearchError("GitHub 返回了无效 JSON。") from exc
         headers = {
             "Accept": "application/vnd.github+json",
-            "User-Agent": "contrib-scout/0.2",
+            "User-Agent": "contrib-scout/0.3",
             "X-GitHub-Api-Version": "2022-11-28",
         }
         token = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")

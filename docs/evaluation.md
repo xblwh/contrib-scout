@@ -2,7 +2,7 @@
 
 ## 当前已完成的验证
 
-67 项离线自动化测试，覆盖规则筛选、分页与部分失败、模型响应契约、Markdown 内容转义、报告下载、本地 HTTP 任务、端口冲突和请求来源校验。运行：
+108 项离线自动化测试，覆盖规则筛选、分页与部分失败、模型响应契约、Markdown 内容转义、报告下载、本地 HTTP 任务、端口冲突和请求来源校验。运行：
 
 ```bash
 python3 -m unittest discover -s tests -v
@@ -10,13 +10,64 @@ python3 -m unittest discover -s tests -v
 
 v0.2 新增指定 issue 解析、PR 误传与关闭状态、近期合并 PR、共享贡献文档的公开可见性、规则原文行号、认领撤回、技术栈单词边界、无效模型用量与截断响应等回归案例。
 
-这些测试验证程序行为，不构成模型准确率评测。所有测试 issue 和演示数据均为虚构。
+v0.3 增加技术证据分层、不凑数、原生目标技术冲突、普通提及与 Refs/解决意图区分、作者实现记录、快照路径查询、代码摘录、选项恢复和模型材料投影等回归案例。
+
+这些测试验证程序行为，不构成模型准确率评测。测试中的 issue 是虚构或由失败形态构造的最小输入；演示数据全部虚构。
 
 首轮真实联调于 2026-09-14 对 `Hisn00w/ASu-skills` 运行：读取 8 个开放 issue、6 个开放 PR，生成 3 个候选；通过关联证据识别 issue #146 与开放 PR #147，标为暂缓。这是一次现场快照，GitHub 状态之后可能变化，不能作为长期基准。
 
 v0.2 定向调研同一仓库的 issue #146，读取 1 个问题、6 个开放 PR、90 个关闭 PR，保留 #147 的关联证据；同时从贡献文档提取带行号的审批和贡献范围线索。这个现场结果同样不是长期基准。
 
-本机尚未配置模型密钥，真实模型调用、模型语义质量和实际账单费用尚未验证。模型 HTTP 请求、JSON 字段校验、伪造来源拒绝和 token 用量记录已通过模拟响应测试。
+本机尚未配置模型密钥，真实模型调用、模型语义质量和实际账单费用尚未验证。模型 HTTP 请求、JSON 字段校验、伪造来源拒绝和 token 用量记录已通过模拟响应测试。另用 loopback HTTP 模型桩测试 8 个候选的完整 JSON 传输、伪造来源、截断响应和 HTTP 503：成功只更新建议区，失败保留原报告。模型桩不构成真实模型评测。
+
+## v0.3 真实案例复核：2026-09-14
+
+本轮由 Codex 执行采集、实现与阶段自审，没有独立人工标注，也没有运行目标仓库代码。先在 v0.2.0（`0e0237c`）记录三个公开仓库的 API 返回，使用相同的 issue/PR 列表和已有评论/时间线回放新规则；新入选候选的时间线、评论和文件入口另行读取，因此整份报告不是 GitHub 的原子时间快照。原始返回仅保存在本地被忽略的报告目录，没有将第三方评论全集提交进仓库。
+
+输入均为 `--stack "Python, TypeScript" --limit 8`。下表比较候选行为，不把新状态分布当作准确率。
+
+| 仓库 | 缓存窗口中的开放 issue | v0.2 候选 | v0.3 默认候选 | v0.3 协作结果 |
+| --- | ---: | ---: | ---: | --- |
+| Hisn00w/ASu-skills | 8 | 8 | 3；其余 5 个没有技术匹配依据 | 1 未发现占用线索、1 待核实、1 暂缓 |
+| pydantic/pydantic-ai | 71 | 8 | 8；直接文本证据优先于仅仓库语言匹配 | 5 待核实、3 暂缓 |
+| vercel/ai | 41 | 8 | 8；排除 4 个标题明确要求其他原生语言的提案 | 8 暂缓 |
+
+**没有得到“已验证可认领”的机会。** 繁忙仓库的高相关候选可能都有进行中的方案；工具尚未遍历后续候选来寻找空闲问题，也未比较每个 PR 的实际 diff。数量更少或标签变化不是贡献成功的证据。
+
+具体核对与由此修正的行为：
+
+| 公开案例 | 可观察的材料 | 当前行为与边界 |
+| --- | --- | --- |
+| [ASu #146](https://github.com/Hisn00w/ASu-skills/issues/146) | [#147](https://github.com/Hisn00w/ASu-skills/pull/147) 提出解决意图；[Contrib Scout #2](https://github.com/xblwh/contrib-scout/pull/2) 只把它用作验证案例 | 保留 #147 的暂缓提示；#2 在普通引用区，不暗示已解决 ASu 问题 |
+| [ASu #149](https://github.com/Hisn00w/ASu-skills/issues/149) | 文件变更表、验证输出与分支陈述；两个脚本路径可在默认分支快照找到 | 先核实已有实现；不把作者测试结果写成本工具验证结果 |
+| [ASu #150](https://github.com/Hisn00w/ASu-skills/issues/150) | 没有写 Python 名称，但原文提到 scripts/validate_skills.py | 原先只靠语言词会漏选；新增路径扩展名线索后保留，再单独核实文件存在，仍未取得贡献许可 |
+| [ASu #115](https://github.com/Hisn00w/ASu-skills/issues/115) | [#133](https://github.com/Hisn00w/ASu-skills/pull/133)、[#140](https://github.com/Hisn00w/ASu-skills/pull/140) 用 Refs 标注范围关联；[#153](https://github.com/Hisn00w/ASu-skills/pull/153) 明确说它不是关闭对象 | Refs 保留范围比较义务；不能全部归入普通提及，也不据此声称整体已解决 |
+| [Vercel #20702](https://github.com/vercel/ai/issues/20702) | 标题要求 native Go，背景提到 TypeScript runtime | 默认排除目标技术不同的提案；定向调研仍保留并解释，不做全面语义匹配承诺 |
+| [Vercel #20649](https://github.com/vercel/ai/issues/20649) | [#20699](https://github.com/vercel/ai/pull/20699) 使用非标准 fixing 声明；issue 在错误日志后给出复现章节 | 仍识别作者解决意图并暂缓；优先展示复现代码，不把 fixing 说成 GitHub 自动关闭关键词 |
+| [Vercel #12052](https://github.com/vercel/ai/issues/12052) | 作者给出的旧实现路径在默认分支快照未找到 | 记录未核实原因，不拼出一个声称存在的源码链接 |
+| [Pydantic #8327](https://github.com/pydantic/pydantic-ai/issues/8327) | [#8329](https://github.com/pydantic/pydantic-ai/pull/8329) 的解决意图；原文给出 web_fetch.py 链接 | 保留暂缓，并提供固定 commit 的文件入口；未运行网页提取或确认根因 |
+
+修正规则时曾出现两个反方向的问题：只接受标准 closing keyword 会漏掉真实的 fixing 声明；把所有非 closing 引用当普通提及又会隐藏 Refs 的部分范围关联。技术过滤初期也漏掉了只写 Python 文件路径的 #150。均先核对原文，再用虚构最小输入写回归，避免只追求更少风险标签或更少候选。
+
+本轮不同改动阶段的直接联网运行用于检查体验，GitHub 数据会继续变化，**不是统一版本、同输入的性能基准**。ASu 默认筛选行使用最后安装包的实测，其余行为另以最终代码回放核对：
+
+| 场景 | GitHub 请求 | 采集时间 |
+| --- | ---: | ---: |
+| ASu 最后安装包，8 为上限得到 3 个候选，启用文件核实 | 20 | 27.43 秒 |
+| ASu 扩大到未匹配候选，关闭文件核实 | 26 | 26.18 秒 |
+| Pydantic，启用文件核实 | 38 | 54.65 秒 |
+| Vercel，启用文件核实 | 39 | 56.98 秒 |
+
+文件核实增加最多 9 个请求（分支 1 次、路径 8 次）。此轮优先改善证据质量，未宣称所有仓库查询都更快。模型开关关闭，上表不含模型延迟或费用。大仓库仍有列表上限，报告显示相应缺口。
+
+复查入口（会读取届时的公开 GitHub 状态，不保证重复得到上述快照）：
+
+```bash
+python3 -m contrib_scout research "Hisn00w/ASu-skills#115" --use-gh --format json
+python3 -m contrib_scout research "vercel/ai#20649" --use-gh --format json
+python3 -m contrib_scout research "vercel/ai#20702" --use-gh --format json
+python3 -m contrib_scout research "pydantic/pydantic-ai#8327" --use-gh --format json
+```
 
 ## 下一轮人工标注
 

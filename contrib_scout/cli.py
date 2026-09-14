@@ -18,6 +18,16 @@ def main(argv=None):
     )
     scan.add_argument("--stack", default="Python, TypeScript")
     scan.add_argument("--limit", type=int, default=3)
+    scan.add_argument(
+        "--include-unmatched",
+        action="store_true",
+        help="也保留相关性未确认或目标技术不同的问题",
+    )
+    scan.add_argument(
+        "--no-source-hints",
+        action="store_true",
+        help="跳过原文文件路径核实，减少 GitHub 请求",
+    )
     scan.add_argument("--format", choices=["markdown", "json"], default="markdown")
     scan.add_argument("--out", type=Path)
     scan.add_argument(
@@ -46,7 +56,14 @@ def main(argv=None):
         report = (
             demo_report()
             if args.demo
-            else research(args.repo, args.stack, args.limit, GitHub(args.use_gh))
+            else research(
+                args.repo,
+                args.stack,
+                args.limit,
+                GitHub(args.use_gh),
+                include_unmatched=args.include_unmatched,
+                check_sources=not args.no_source_hints,
+            )
         )
         if args.ai:
             try:

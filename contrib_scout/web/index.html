@@ -19,7 +19,7 @@
       >
       <div class="top-meta">
         <span class="status-dot"></span> LOCAL WORKSPACE
-        <span class="version">v0.2</span>
+        <span class="version">v0.3</span>
       </div>
     </header>
     <main>
@@ -67,15 +67,31 @@
               placeholder="Python, TypeScript"
               maxlength="200"
             />
-            <div class="stack-tags">
-              <span>Python</span><span>TypeScript</span><span>AI 应用</span>
-            </div>
             <label for="limit">本次候选数量</label
             ><select id="limit" name="limit">
               <option value="3">3 个 · 聚焦起步</option>
               <option value="5">5 个 · 多些选择</option>
               <option value="8">8 个 · 扩大调研</option>
             </select>
+            <details class="research-options">
+              <summary>筛选与文件核实</summary>
+              <label class="check-row" for="include-unmatched"
+                ><input
+                  type="checkbox"
+                  id="include-unmatched"
+                />也看未匹配的问题</label
+              >
+              <label class="check-row" for="check-sources"
+                ><input
+                  type="checkbox"
+                  id="check-sources"
+                  checked
+                />核实问题原文提及的文件路径</label
+              >
+              <p class="field-help">
+                默认保留问题文本或仓库语言有匹配线索的候选；“未匹配”包括相关性未确认和明确目标技术不同。文件核实有查询上限，不执行代码。
+              </p>
+            </details>
             <label class="toggle-row" for="ai"
               ><span
                 ><strong>AI 辅助分析</strong
@@ -134,6 +150,7 @@
               演示报告 · 以下仓库、问题与状态均为虚构，仅展示产品流程。
             </div>
             <div id="stats" class="stats"></div>
+            <p id="selection-note" class="selection-note"></p>
             <div id="documents" class="documents"></div>
             <section
               id="policy"
@@ -152,7 +169,7 @@
                 <button class="active" data-filter="all" aria-pressed="true">
                   全部</button
                 ><button data-filter="investigate" aria-pressed="false">
-                  可调研</button
+                  未见占用</button
                 ><button data-filter="attention" aria-pressed="false">
                   需关注
                 </button>
