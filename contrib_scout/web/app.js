@@ -15,6 +15,25 @@ let filter = "all";
 let csrf = "";
 let busy = false;
 let downloadUrl = "/api/demo.md";
+const storageKey = "contrib-scout:last-report";
+function remember(value) {
+    try {
+        if (value)
+            sessionStorage.setItem(storageKey, value);
+        else
+            sessionStorage.removeItem(storageKey);
+    }
+    catch {
+    }
+}
+function remembered() {
+    try {
+        return sessionStorage.getItem(storageKey);
+    }
+    catch {
+        return null;
+    }
+}
 function link(text, url) {
     const node = el("a", "source-link", text);
     try {
@@ -110,6 +129,10 @@ function renderCandidates() {
             const refs = el("div", "ai-refs");
             const lookup = new Map([
                 ...item.sources.map((source) => [source.id, { url: source.url, label: source.label }]),
+                ...(current.report.policy?.findings ?? []).map((finding) => [
+                    finding.id,
+                    { url: finding.url, label: `${finding.path}:${finding.line}` },
+                ]),
                 ...current.report.documents.map((doc) => [doc.id, { url: doc.url, label: doc.path }]),
             ]);
             item.ai.source_ids.forEach((id) => {
@@ -142,6 +165,9 @@ function render(result) {
         button.setAttribute("aria-pressed", String(active));
     });
     const report = result.report, repo = report.repository;
+    $("target-note").textContent = report.target?.issue_number
+        ? `定向调研 · Issue #${report.target.issue_number}`
+        : "仓库候选调研";
     $("empty").hidden = true;
     $("report").hidden = false;
     $("demo-banner").hidden = !report.demo;
@@ -156,6 +182,7 @@ function render(result) {
     [
         [String(report.coverage.issues_scanned), "扫描的问题"],
         [String(report.coverage.open_prs_scanned), "检查的开放 PR"],
+        [String(report.coverage.closed_prs_scanned ?? 0), "检查的关闭 PR"],
         [
             String(report.candidates.filter((item) => item.status === "investigate")
                 .length),
@@ -168,21 +195,79 @@ function render(result) {
     });
     const documents = $("documents");
     documents.replaceChildren(el("span", "mini-label", "仓库文档"));
-    report.documents.forEach((doc) => documents.append(link(doc.path + " ↗", doc.url)));
+    report.documents.forEach((doc) => documents.append(link(doc.path +
+        (doc.inherited ? "（共享）" : "") +
+        " ↗", doc.url)));
     if (!report.documents.length)
         documents.append(el("span", "", "未读取到文档，请人工核实"));
-    $("warning-count").textContent = `${report.warnings.length} 条提示`;
+    renderPolicy(report);
+    $("warning-count").textContent = report.warnings.length
+        ? `${report.warnings.length} 条提示`
+        : "范围说明";
     $("coverage-body").replaceChildren(el("p", "", report.coverage.note), list(report.warnings));
     $("candidate-count").textContent = String(report.candidates.length);
     let footer = `采集于 ${date(report.generated_at)} · ${report.metrics.github_requests} 次 GitHub 请求 · ${report.metrics.elapsed_seconds}s`;
     if (report.ai.enabled)
-        footer += ` · AI ${report.ai.model} · ${report.ai.usage?.total_tokens ?? "未知"} tokens · 估算费用 ${report.ai.estimated_cost_usd == null ? "未配置价格" : `$${report.ai.estimated_cost_usd}`}`;
+        footer += ` · AI ${report.ai.model} · ${report.ai.usage?.total_tokens ?? "未知"} tokens · 估算费用 ${report.ai.estimated_cost_usd == null ? "未知（价格或用量不完整）" : `$${report.ai.estimated_cost_usd}`}`;
     else
         footer += " · 基础调研模式";
     $("report-footer").textContent = footer;
     renderCandidates();
     if (report.ai.error)
         feedback(`GitHub 调研已完成；AI 分析未完成：${report.ai.error}`, "error");
+}
+function renderPolicy(report) {
+    const container = $("policy");
+    container.replaceChildren();
+    const details = el("details", "policy-details");
+    const findings = report.policy?.findings ?? [];
+    details.append(el("summary", "", `贡献规则原文线索 · ${findings.length} 条待核实`));
+    details.append(el("p", "policy-note", report.policy?.note ??
+        "演示仅展示规则入口；真实报告会提取带行号的原文线索。"));
+    if (!findings.length)
+        details.append(el("p", "quiet-note", "未命中关键词不代表没有贡献限制，请阅读完整文档。"));
+    for (const finding of findings) {
+        const block = el("div", "policy-finding");
+        block.append(el("span", "mini-label", finding.categories.join(" / ") +
+            (finding.inherited ? " · 共享规则，适用范围待确认" : "")), link(`${finding.path}:${finding.line} ↗`, finding.url), el("blockquote", "", finding.quote + (finding.quote_truncated ? "…（摘录截断）" : "")));
+        details.append(block);
+    }
+    container.append(details);
+}
+async function waitForJob(jobId, started = Date.now()) {
+    let failures = 0;
+    while (Date.now() - started < 900_000) {
+        let result;
+        try {
+            result = await api(`/api/jobs/${jobId}`);
+            failures = 0;
+        }
+        catch (error) {
+            failures++;
+            if (failures >= 3)
+                throw error;
+            feedback("连接暂时中断，正在重试读取任务状态…", "loading");
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            continue;
+        }
+        if (result.state === "error") {
+            remember(null);
+            throw new Error(result.error || "调研失败。");
+        }
+        if (result.state === "complete" && result.report && result.markdown) {
+            feedback("");
+            downloadUrl = `/api/jobs/${jobId}/report.md`;
+            $("repo").setAttribute("value", result.report.target?.input ?? result.report.repository.name);
+            $("repo").value =
+                result.report.target?.input ?? result.report.repository.name;
+            $("stack").value = result.report.stack.join(", ");
+            render({ report: result.report, markdown: result.markdown });
+            return;
+        }
+        feedback(`${result.progress || "正在核对来源"} · 本次等待 ${Math.floor((Date.now() - started) / 1000)} 秒`, "loading");
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+    throw new Error("等待超时。任务可能仍在运行，可以稍后刷新本页恢复。");
 }
 async function loadDemo() {
     if (busy)
@@ -192,6 +277,7 @@ async function loadDemo() {
         feedback("");
         const result = await api("/api/demo");
         downloadUrl = "/api/demo.md";
+        remember("demo");
         render(result);
     }
     catch (error) {
@@ -208,7 +294,7 @@ $("research-form").addEventListener("submit", async (event) => {
     if (busy)
         return;
     busyUI(true);
-    feedback("正在读取仓库文档、issue、评论和相关 PR。大仓库可能需要几分钟，请保持页面打开。", "loading");
+    feedback("正在读取仓库与问题。刷新本页也可以恢复当前任务。", "loading");
     const started = Date.now();
     try {
         if (!csrf)
@@ -223,23 +309,8 @@ $("research-form").addEventListener("submit", async (event) => {
                 ai: $("ai").checked,
             }),
         });
-        let completed = false;
-        while (Date.now() - started < 900_000) {
-            await new Promise((resolve) => setTimeout(resolve, 1500));
-            const result = await api(`/api/jobs/${job.job_id}`);
-            if (result.state === "error")
-                throw new Error(result.error || "调研失败。");
-            if (result.state === "complete" && result.report && result.markdown) {
-                feedback("");
-                downloadUrl = `/api/jobs/${job.job_id}/report.md`;
-                render({ report: result.report, markdown: result.markdown });
-                completed = true;
-                break;
-            }
-            feedback(`正在核对来源… 已用 ${Math.floor((Date.now() - started) / 1000)} 秒。`, "loading");
-        }
-        if (!completed)
-            throw new Error("等待超时，后台调研可能仍在运行。请稍后重新发起。");
+        remember(job.job_id);
+        await waitForJob(job.job_id, started);
     }
     catch (error) {
         feedback(error instanceof Error
@@ -271,13 +342,44 @@ $("export").addEventListener("click", () => {
     anchor.download = "research.md";
     anchor.click();
 });
+$("export-json").addEventListener("click", () => {
+    if (!current)
+        return;
+    const anchor = document.createElement("a");
+    anchor.href = downloadUrl.replace(/\.md$/, ".json");
+    anchor.download = "research.json";
+    anchor.click();
+});
 api("/api/config")
-    .then((config) => {
+    .then(async (config) => {
     csrf = config.csrf;
     $("ai").disabled = !config.ai_configured;
     $("ai-note").textContent = config.ai_configured
         ? "模型已配置，按需启用"
         : "未配置模型 · 基础调研可用";
+    const last = remembered();
+    if (!last || busy)
+        return;
+    if (last === "demo") {
+        await loadDemo();
+        return;
+    }
+    if (!/^[a-zA-Z0-9_-]{10,64}$/.test(last)) {
+        remember(null);
+        return;
+    }
+    busyUI(true);
+    feedback("正在恢复上次调研…", "loading");
+    try {
+        await waitForJob(last);
+    }
+    catch (error) {
+        remember(null);
+        feedback(`未能恢复上次报告：${error instanceof Error ? error.message : "服务可能已重启"}。可以重新开始调研。`, "error");
+    }
+    finally {
+        busyUI(false);
+    }
 })
     .catch(() => {
     $("ai-note").textContent = "未连接本地服务";
