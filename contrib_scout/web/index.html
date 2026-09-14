@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="从 GitHub 证据出发，找到值得进一步调研的开源贡献问题。"
+    />
+    <title>Contrib Scout · 开源贡献调研助手</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Contrib Scout 首页"
+        ><span class="brand-mark">cs<span>↗</span></span
+        ><span>Contrib Scout<small>开源贡献调研助手</small></span></a
+      >
+      <div class="top-meta">
+        <span class="status-dot"></span> LOCAL WORKSPACE
+        <span class="version">v0.1</span>
+      </div>
+    </header>
+    <main>
+      <section class="intro">
+        <div>
+          <div class="eyebrow">FIND YOUR NEXT CONTRIBUTION</div>
+          <h1>下一次贡献，<br />从可靠的线索开始。</h1>
+          <p>
+            把仓库规则、真实问题与协作状态放在一起。<br
+              class="desktop"
+            />先理解问题，再决定从哪里动手。
+          </p>
+        </div>
+        <div class="intro-note">
+          <span>01 / RESEARCH</span>
+          <p>一份有来源的调研<br />一次有准备的贡献</p>
+          <div class="note-line"></div>
+          <small>GitHub 事实采集 · 可选 AI 分析</small>
+        </div>
+      </section>
+      <div class="workspace">
+        <aside class="setup">
+          <div class="section-kicker">开始调研 <span>↗</span></div>
+          <form id="research-form">
+            <label for="repo">GitHub 仓库</label
+            ><input
+              id="repo"
+              name="repo"
+              placeholder="owner/repository"
+              value=""
+              required
+              maxlength="250"
+              spellcheck="false"
+              autocomplete="off"
+            />
+            <p class="field-help">支持公开仓库链接或 owner/repo</p>
+            <label for="stack">你的技术栈</label
+            ><input
+              id="stack"
+              name="stack"
+              value="Python, TypeScript"
+              placeholder="Python, TypeScript"
+              maxlength="200"
+            />
+            <div class="stack-tags">
+              <span>Python</span><span>TypeScript</span><span>AI 应用</span>
+            </div>
+            <label for="limit">本次候选数量</label
+            ><select id="limit" name="limit">
+              <option value="3">3 个 · 聚焦起步</option>
+              <option value="5">5 个 · 多些选择</option>
+              <option value="8">8 个 · 扩大调研</option>
+            </select>
+            <label class="toggle-row" for="ai"
+              ><span
+                ><strong>AI 辅助分析</strong
+                ><small id="ai-note">检查模型配置中…</small></span
+              ><input type="checkbox" id="ai" disabled
+            /></label>
+            <p class="field-help">
+              启用后，公开仓库材料会发送至你配置的模型服务。
+            </p>
+            <button class="primary" type="submit" id="submit">
+              开始调研 <span>↗</span>
+            </button>
+            <button class="secondary" type="button" id="demo">
+              查看演示报告
+            </button>
+          </form>
+          <div class="workflow-note">
+            <span class="mini-label">你会得到什么</span>
+            <ol>
+              <li><span>01</span> 仓库与贡献规则来源</li>
+              <li><span>02</span> 问题、认领与相关 PR</li>
+              <li><span>03</span> 待核实事项与行动建议</li>
+            </ol>
+          </div>
+        </aside>
+        <section class="results" aria-label="调研结果">
+          <div id="feedback" role="status" aria-live="polite" hidden></div>
+          <div id="empty" class="empty-state">
+            <div class="empty-symbol">↗</div>
+            <div class="eyebrow">A SMALL START, A REAL CONTRIBUTION</div>
+            <h2>找到值得你投入的问题</h2>
+            <p>
+              输入一个你正在使用或感兴趣的项目。<br />调研从公开信息开始，每条判断都能回到来源。
+            </p>
+            <button class="text-button" id="empty-demo">
+              先看看一份报告 →
+            </button>
+            <div class="empty-footer">
+              <span>有来源</span><span>有边界</span><span>有下一步</span>
+            </div>
+          </div>
+          <div id="report" hidden>
+            <div class="report-heading">
+              <div>
+                <div class="eyebrow" id="report-mode">RESEARCH REPORT</div>
+                <h2 id="repo-name"></h2>
+                <p id="repo-meta"></p>
+              </div>
+              <button class="export" id="export">↓ 导出 Markdown</button>
+            </div>
+            <div id="demo-banner" class="demo-banner" hidden>
+              演示报告 · 以下仓库、问题与状态均为虚构，仅展示产品流程。
+            </div>
+            <div id="stats" class="stats"></div>
+            <div id="documents" class="documents"></div>
+            <details class="coverage">
+              <summary>
+                调研范围与待核实信息 <span id="warning-count"></span>
+              </summary>
+              <div id="coverage-body"></div>
+            </details>
+            <div class="candidate-heading">
+              <h3>问题候选 <span id="candidate-count"></span></h3>
+              <div class="filters" role="group" aria-label="筛选候选">
+                <button class="active" data-filter="all" aria-pressed="true">
+                  全部</button
+                ><button data-filter="investigate" aria-pressed="false">
+                  可调研</button
+                ><button data-filter="attention" aria-pressed="false">
+                  需关注
+                </button>
+              </div>
+            </div>
+            <div id="candidates"></div>
+            <footer class="report-footer" id="report-footer"></footer>
+          </div>
+        </section>
+      </div>
+      <footer class="page-footer">
+        <span>CONTRIB SCOUT</span>
+        <p>用真实问题积累经验，让每次贡献都有据可查。</p>
+        <span>Built for curious developers.</span>
+      </footer>
+    </main>
+  </body>
+</html>

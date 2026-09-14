@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmitOnError": true,
+    "rootDir": "frontend",
+    "outDir": "contrib_scout/web",
+    "removeComments": true
+  },
+  "include": ["frontend/**/*.ts"]
+}

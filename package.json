@@ -1,0 +1,13 @@
+{
+  "name": "contrib-scout-ui",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2",
+    "typescript": "~5.9.3"
+  }
+}
