@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      name="description"
+      content="一次真实的工具使用记录：从公开材料调研，到改进实现、验证、自审和自有项目合并。"
+    />
+    <title>真实使用记录 · Contrib Scout</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/case-study.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Contrib Scout 首页"
+        ><span class="brand-mark">cs<span>↗</span></span
+        ><span>Contrib Scout<small>开源贡献调研助手</small></span></a
+      >
+      <a class="case-back" href="/">返回调研 ↗</a>
+    </header>
+    <main class="case-page">
+      <article>
+        <header class="case-intro">
+          <div class="eyebrow">REAL USE / IDENTIFYING DETAILS REMOVED</div>
+          <h1>从一份调研报告，<br />到一次通过验证的改进。</h1>
+          <p class="case-lead">
+            实际使用 Contrib Scout 后，报告暴露出候选筛选和关联 PR 判断的问题。
+            Codex 据此修改工具，经过回归、联网复核与阶段自审，提交并合并了改进。
+          </p>
+          <div class="case-outcome" aria-label="案例结果与性质">
+            <strong>结果：CI 通过 · 已合并至自有项目</strong>
+            <p>
+              这是一次真实的自用改进。合并由 Codex 根据项目所有者授权执行，
+              尚无独立维护者评审；不能作为第三方社区已接受贡献的案例。
+            </p>
+          </div>
+        </header>
+
+        <section class="case-roles" aria-labelledby="roles-title">
+          <h2 id="roles-title">各自做了什么</h2>
+          <dl>
+            <div>
+              <dt>Contrib Scout</dt>
+              <dd>
+                只读收集公开材料，整理技术线索、协作状态、规则和待核实事项。
+              </dd>
+            </div>
+            <div>
+              <dt>Codex</dt>
+              <dd>
+                核对原文、选择改动、写代码、运行测试、自审，并操作 Git 与 CI。
+              </dd>
+            </div>
+            <div>
+              <dt>项目所有者</dt>
+              <dd>设定需求并授权自主优化与合并；未进行本次逐行人工复核。</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section aria-labelledby="process-title">
+          <h2 id="process-title">这次实际怎样走完流程</h2>
+          <ol class="case-timeline">
+            <li>
+              <span class="case-step" aria-hidden="true">01</span>
+              <div>
+                <h3>使用工具，保存问题出现时的报告</h3>
+                <p>
+                  以 Python、TypeScript
+                  为技术栈，调研三个公开仓库，关闭可选模型分析。 本地保留当时的
+                  API 返回与报告，用于比较改动前后的结果。
+                </p>
+                <p class="case-evidence">
+                  证据类型：调研参数、采集结果、基线报告。
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="case-step" aria-hidden="true">02</span>
+              <div>
+                <h3>回到原文，确定值得修正的误判</h3>
+                <p>
+                  实际材料中，有些 PR
+                  只是引用问题作为验证案例，有些只关联部分范围；
+                  两者都不能直接当作“已解决”。技术筛选也会选中仅在背景提及技术栈的问题，
+                  却漏掉只写 Python 文件路径的问题。
+                </p>
+                <p class="case-evidence">
+                  证据类型：问题正文、PR 描述、报告中的分类结果。
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="case-step" aria-hidden="true">03</span>
+              <div>
+                <h3>修改工具，并主动检查改动有没有走偏</h3>
+                <p>
+                  Codex 把技术相关性、贡献规则与协作状态分开展示，细分 PR
+                  引用关系，
+                  增加原文文件入口。阶段自审又发现：过滤过严会漏掉路径线索，
+                  只接受标准关闭关键词会漏掉作者的修复声明；随后修正并补充回归。
+                </p>
+                <p class="case-evidence">
+                  证据类型：代码差异、阶段复核记录、回归用例。
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="case-step" aria-hidden="true">04</span>
+              <div>
+                <h3>验证行为，也检查用户真正看到的结果</h3>
+                <p>
+                  先回放已保存材料，再联网核对真实报告；同时检查 Python 测试、
+                  TypeScript 构建、独立安装、网页、手机布局与 Markdown / JSON
+                  下载。 新增来源另行读取，因此前后比较并非完全相同的时间快照。
+                </p>
+                <p class="case-evidence">
+                  证据类型：测试输出、缓存回放、安装与浏览器检查记录。
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="case-step" aria-hidden="true">05</span>
+              <div>
+                <h3>提交改进，CI 通过后按授权合并</h3>
+                <p>
+                  Codex 在独立分支提交代码，在 PR 中说明原因、验证、AI
+                  辅助范围与限制。 远程多版本 Python
+                  检查和前端检查通过后，按所有者授权合并， 并确认主分支 CI
+                  通过。Contrib Scout 本身没有自动提交或合并功能。
+                </p>
+                <p class="case-evidence">
+                  证据类型：PR 状态、远程检查结果、合并记录。
+                </p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section class="case-panel" aria-labelledby="result-title">
+          <h2 id="result-title">通过了什么，还不能证明什么</h2>
+          <p>
+            这次完成了“使用工具 → 发现问题 → 修改 → 验证 → 提交 →
+            合并”的自有项目流程，
+            并修正了实际遇到的分类问题。测试通过证明这些检查通过，
+            不代表候选推荐准确率，也不等于独立社区认可。
+          </p>
+          <p>
+            本次没有运行被调研仓库的复现代码，没有确认贡献许可，没有调用真实付费模型。
+            只有在工具确实参与某次对外贡献，且对方维护者明确合并后，
+            才能另行记录“第三方贡献已合并”；采纳范围须以实际改动为准。
+          </p>
+        </section>
+
+        <section class="case-panel" aria-labelledby="privacy-title">
+          <h2 id="privacy-title">这份记录如何保护隐私</h2>
+          <p>
+            本页依据已核对的记录手工编写，省略姓名、账号、邮箱、本机路径、精确时间、
+            被调研仓库名、具体贡献编号、可识别的原文引用、个人截图和贡献链接。
+            原始报告与证据映射留在本地被忽略的目录，没有作为案例附件发布。
+          </p>
+          <p>
+            因此，读者可以了解过程，但无法仅凭本页独立复核原始记录。
+            去除这些字段也不保证无法通过其他公开信息关联作者；公开仓库本身仍有发布者和提交历史。
+          </p>
+          <p class="case-evidence">
+            这是本页的手工隐私处理。工具导出的普通调研报告仍含来源链接与摘录，分享前需要另行检查。
+          </p>
+        </section>
+      </article>
+      <footer class="page-footer">
+        <span>CONTRIB SCOUT</span>
+        <a href="/">带着这些边界，开始一次调研 →</a>
+      </footer>
+    </main>
+  </body>
+</html>

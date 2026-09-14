@@ -170,9 +170,11 @@ class Handler(BaseHTTPRequestHandler):
                 self.send(job)
             else:
                 self.send({"error": "报告不存在或尚未完成，请重新调研。"}, 404)
-        elif path in {"/", "/app.js", "/style.css"}:
+        elif path in {"/", "/case-study", "/case-study.css", "/app.js", "/style.css"}:
             filename, mime = {
                 "/": ("index.html", "text/html"),
+                "/case-study": ("case-study.html", "text/html"),
+                "/case-study.css": ("case-study.css", "text/css"),
                 "/app.js": ("app.js", "text/javascript"),
                 "/style.css": ("style.css", "text/css"),
             }[path]
